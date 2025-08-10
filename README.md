@@ -1,6 +1,6 @@
 # CircuitsAI - 智能电路设计平台
 
-[![开发状态](https://img.shields.io/badge/开发状态-Phase%201%20MVP%20完成-brightgreen)](https://github.com/your-username/circuitsai)
+[![开发状态](https://img.shields.io/badge/开发状态-Phase%202%20完成-brightgreen)](https://github.com/your-username/circuitsai)
 [![技术栈](https://img.shields.io/badge/技术栈-React%20%2B%20Node.js%20%2B%20TypeScript-blue)](https://github.com/your-username/circuitsai)
 [![AI支持](https://img.shields.io/badge/AI支持-OpenAI%20%2B%20Claude%20%2B%20Gemini-orange)](https://github.com/your-username/circuitsai)
 
@@ -51,12 +51,12 @@ npm run install:all
 npm run dev
 
 # 或分别启动
-npm run dev:backend  # 后端服务 http://localhost:3001
-npm run dev:frontend # 前端应用 http://localhost:3000
+npm run dev:backend  # 后端服务 http://localhost:3003
+npm run dev:frontend # 前端应用 http://localhost:3002
 ```
 
 ### 首次使用
-1. 访问 http://localhost:3000
+1. 访问 http://localhost:3002
 2. 点击左侧AI助手的设置按钮⚙️配置API密钥（可选）
 3. 在对话框输入："设计一个LED闪烁电路"
 4. 查看生成的电路图和BOM清单

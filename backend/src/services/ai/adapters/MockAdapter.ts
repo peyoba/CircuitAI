@@ -11,7 +11,7 @@ export class MockAdapter extends BaseAPIAdapter {
     })
   }
 
-  async chat(messages: APIMessage[], _options?: any): Promise<string> {
+  async chat(messages: APIMessage[], _options?: { temperature?: number; maxTokens?: number }): Promise<string> {
     // 模拟API延迟
     await new Promise(resolve => setTimeout(resolve, 500))
     
@@ -38,16 +38,16 @@ export class MockAdapter extends BaseAPIAdapter {
     return true
   }
 
-  formatMessages(messages: APIMessage[]): any[] {
+  formatMessages(messages: APIMessage[]): Array<{ role: string; content: string }> {
     return messages.map(msg => ({
       role: msg.role,
       content: msg.content
     }))
   }
 
-  parseResponse(response: any): APIResponse {
+  parseResponse(response: { content?: string; message?: string }): APIResponse {
     return {
-      content: response,
+      content: response.content || response.message || '',
       usage: {
         promptTokens: 10,
         completionTokens: 50,

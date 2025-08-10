@@ -67,11 +67,24 @@ export class CustomAdapter extends BaseAPIAdapter {
           }
           break
         case 'custom':
-          data = {
-            prompt: messages.map(m => `${m.role}: ${m.content}`).join('\n'),
-            model: this.config.model,
-            max_tokens: options?.maxTokens || this.config.maxTokens,
-            temperature: options?.temperature || this.config.temperature
+          // 检查是否为SiliconFlow或其他需要messages格式的API
+          const isSiliconFlow = this.config.apiUrl?.includes('siliconflow.cn')
+          const isOpenAICompatible = this.config.apiUrl?.includes('openai.com') || isSiliconFlow
+          
+          if (isOpenAICompatible) {
+            data = {
+              model: this.config.model,
+              messages: formattedMessages,
+              max_tokens: options?.maxTokens || this.config.maxTokens,
+              temperature: options?.temperature || this.config.temperature
+            }
+          } else {
+            data = {
+              prompt: messages.map(m => `${m.role}: ${m.content}`).join('\n'),
+              model: this.config.model,
+              max_tokens: options?.maxTokens || this.config.maxTokens,
+              temperature: options?.temperature || this.config.temperature
+            }
           }
           break
       }

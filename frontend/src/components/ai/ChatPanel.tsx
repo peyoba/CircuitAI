@@ -203,7 +203,11 @@ const ChatPanel = ({
       let errorContent = '抱歉，我现在无法回复。'
       
       // 根据错误类型提供更具体的错误信息
-      const err = error as any
+      const err = error as { 
+        response?: { status?: number; data?: { error?: string } }; 
+        code?: string; 
+        message?: string 
+      }
       if (err?.response?.status === 401) {
         errorContent = '❌ API密钥无效或未配置，请在设置中检查您的AI服务配置。'
       } else if (err?.response?.status === 429) {

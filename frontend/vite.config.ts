@@ -11,11 +11,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 3002,
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3003',
         changeOrigin: true,
       },
     },
@@ -23,6 +23,19 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          antd: ['antd'],
+        },
+      },
+    },
+  },
+  define: {
+    __API_BASE_URL__: JSON.stringify(process.env.NODE_ENV === 'production' 
+      ? 'https://circuitsai-api.your-subdomain.workers.dev' 
+      : 'http://localhost:3003'),
   },
   test: {
     globals: true,

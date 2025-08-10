@@ -3,6 +3,7 @@ import Joi from 'joi'
 import logger from '../config/logger.js'
 import { AIService } from '../services/ai/AIService.js'
 import { APIAdapterFactory, ProviderConfig } from '../services/ai/APIAdapterFactory.js'
+import { APIResponse, ChatResponseData, ConfigTestResult } from '../utils/apiResponse.js'
 
 const messageSchema = Joi.object({
   message: Joi.string().required().min(1).max(2000),
@@ -36,10 +37,7 @@ const apiConfigSchema = Joi.object({
 export const validateMessage = (req: Request, res: Response, next: NextFunction): void => {
   const { error } = messageSchema.validate(req.body)
   if (error) {
-    res.status(400).json({
-      success: false,
-      error: error.details[0].message
-    })
+    APIResponse.validationError(res, error.details[0].message)
     return
   }
   next()
@@ -59,22 +57,28 @@ export const chatWithAI = async (req: Request, res: Response) => {
       apiConfig
     })
     
-    res.json({
-      success: true,
-      data: {
-        response: response.content,
-        conversation_id: response.conversationId,
-        provider: response.provider,
-        circuit_data: response.circuitData,
-        bom_data: response.bomData
-      }
-    })
+    const responseData: ChatResponseData = {
+      response: response.content,
+      conversation_id: response.conversationId,
+      provider: response.provider,
+      circuit_data: response.circuitData,
+      bom_data: response.bomData
+    }
+    
+    APIResponse.success(res, responseData, '对话响应成功')
   } catch (error) {
     logger.error('AI Chat error:', error)
-    res.status(500).json({
-      success: false,
-      error: 'AI服务暂时不可用，请稍后再试'
-    })
+    const err = error as Error
+    
+    if (err.message.includes('API密钥')) {
+      APIResponse.unauthorized(res, 'API密钥无效或未配置，请检查您的AI服务设置')
+    } else if (err.message.includes('网络') || err.message.includes('连接')) {
+      APIResponse.serviceUnavailable(res, 'AI服务连接失败，请检查网络连接')
+    } else if (err.message.includes('频率') || err.message.includes('限制')) {
+      APIResponse.rateLimited(res, 'API请求频率过高，请稍后再试')
+    } else {
+      APIResponse.serverError(res, 'AI服务暂时不可用，请稍后再试')
+    }
   }
 }
 
@@ -85,10 +89,7 @@ export const testApiConfig = async (req: Request, res: Response): Promise<void> 
     const { error } = apiConfigSchema.validate(req.body)
     if (error) {
       logger.error('Validation error:', error.details[0].message)
-      res.status(400).json({
-        success: false,
-        error: error.details[0].message
-      })
+      APIResponse.validationError(res, error.details[0].message)
       return
     }
     
@@ -100,49 +101,52 @@ export const testApiConfig = async (req: Request, res: Response): Promise<void> 
     try {
       const isValid = await adapter.validateApiKey()
       
-      if (isValid) {
-        res.json({
-          success: true,
-          message: 'API配置测试成功'
-        })
-      } else {
-        res.json({
-          success: false,
-          error: 'API密钥无效或配置错误'
-        })
+      const testResult: ConfigTestResult = {
+        isValid,
+        provider: config.provider,
+        model: config.model
       }
-    } catch (validationError: any) {
+      
+      if (isValid) {
+        APIResponse.success(res, testResult, 'API配置测试成功')
+      } else {
+        testResult.error = 'API密钥无效或配置错误'
+        APIResponse.error(res, 'API密钥无效或配置错误', 400, testResult)
+      }
+    } catch (validationError: unknown) {
       logger.error('API validation detailed error:', validationError)
       
       // 提供更详细的错误信息
+      const err = validationError as Error
       let errorMessage = 'API密钥无效或配置错误'
-      if (validationError.message) {
-        if (validationError.message.includes('ETIMEDOUT')) {
+      if (err.message) {
+        if (err.message.includes('ETIMEDOUT')) {
           errorMessage = '连接超时，请检查网络和API地址'
-        } else if (validationError.message.includes('401')) {
+        } else if (err.message.includes('401')) {
           errorMessage = 'API密钥无效或已过期'
-        } else if (validationError.message.includes('403')) {
+        } else if (err.message.includes('403')) {
           errorMessage = 'API密钥权限不足或被禁用'
-        } else if (validationError.message.includes('certificate')) {
+        } else if (err.message.includes('certificate')) {
           errorMessage = 'SSL证书验证失败，请检查API地址'
-        } else if (validationError.message.includes('ENOTFOUND')) {
+        } else if (err.message.includes('ENOTFOUND')) {
           errorMessage = 'API地址无法解析，请检查URL是否正确'
         } else {
-          errorMessage = `连接失败: ${validationError.message}`
+          errorMessage = `连接失败: ${err.message}`
         }
       }
       
-      res.json({
-        success: false,
+      const failedResult: ConfigTestResult = {
+        isValid: false,
+        provider: config.provider,
+        model: config.model,
         error: errorMessage
-      })
+      }
+      
+      APIResponse.error(res, errorMessage, 400, failedResult)
     }
   } catch (error) {
     logger.error('API config test error:', error)
-    res.status(500).json({
-      success: false,
-      error: '测试失败，请检查API配置'
-    })
+    APIResponse.serverError(res, '测试失败，请检查API配置')
   }
 }
 

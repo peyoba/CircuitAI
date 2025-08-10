@@ -12,7 +12,7 @@ dotenv.config()
 
 const app = express()
 const server = createServer(app)
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3003
 
 // 中间件配置
 app.use(helmet())

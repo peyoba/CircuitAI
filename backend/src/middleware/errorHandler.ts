@@ -31,16 +31,19 @@ export const errorHandler = (
     error.statusCode = 404
   }
 
-  // Mongoose 重复字段错误
-  if (err.name === 'MongoError' && (err as any).code === 11000) {
+  // MongoDB 重复字段错误
+  if (err.name === 'MongoError' && (err as { code?: number }).code === 11000) {
     const message = '重复字段值'
     error = { name: 'MongoError', message } as CustomError
     error.statusCode = 400
   }
 
-  // Mongoose 验证错误
+  // 数据验证错误
   if (err.name === 'ValidationError') {
-    const message = Object.values((err as any).errors).map((val: any) => val.message).join(', ')
+    const validationErr = err as { errors?: Record<string, { message: string }> }
+    const message = validationErr.errors 
+      ? Object.values(validationErr.errors).map(val => val.message).join(', ')
+      : '数据验证失败'
     error = { name: 'ValidationError', message } as CustomError
     error.statusCode = 400
   }

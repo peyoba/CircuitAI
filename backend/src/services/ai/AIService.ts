@@ -14,12 +14,50 @@ export interface ChatRequest {
   apiConfig?: ProviderConfig
 }
 
+export interface CircuitData {
+  ascii?: string
+  description?: string
+  components?: Array<{
+    id: string
+    name: string
+    type: string
+    reference: string
+    value?: string
+  }>
+  properties?: Array<{
+    name: string
+    value: string | number
+    unit?: string
+    description?: string
+  }>
+  connections?: Array<{
+    id: string
+    from: { component: string; pin?: string }
+    to: { component: string; pin?: string }
+    label?: string
+    description?: string
+  }>
+}
+
+export interface BOMData {
+  items?: Array<{
+    component: string
+    quantity: number
+    value?: string
+    package?: string
+    price?: number
+    manufacturer?: string
+    supplier?: string
+  }>
+  totalCost?: number
+}
+
 export interface ChatResponse {
   content: string
   conversationId: string
   provider: string
-  circuitData?: any
-  bomData?: any
+  circuitData?: CircuitData
+  bomData?: BOMData
 }
 
 export class AIService {
@@ -59,7 +97,7 @@ export class AIService {
       let aiResponse: string
       
       console.log('API Config received:', JSON.stringify(request.apiConfig, null, 2))
-      console.log('Config validation result:', this.isValidConfig(request.apiConfig || {} as any))
+      console.log('Config validation result:', this.isValidConfig(request.apiConfig || {} as ProviderConfig))
       
       if (request.apiConfig && this.isValidConfig(request.apiConfig)) {
         // 使用用户提供的API配置
@@ -100,8 +138,8 @@ export class AIService {
         content: aiResponse,
         conversationId,
         provider: request.provider,
-        circuitData,
-        bomData
+        circuitData: circuitData || undefined,
+        bomData: bomData || undefined
       }
     } catch (error) {
       logger.error('AI Service error:', error)
@@ -216,7 +254,7 @@ export class AIService {
 
   // 删除所有模拟响应方法 - 强制使用真实API
 
-  private async extractCircuitData(content: string): Promise<any> {
+  private async extractCircuitData(content: string): Promise<CircuitData | null> {
     // 检查是否包含ASCII电路图
     const codeBlockRegex = /```[\s\S]*?```/g
     const codeBlocks = content.match(codeBlockRegex)
@@ -239,10 +277,24 @@ export class AIService {
     return null
   }
 
-  private async extractBOMData(content: string): Promise<any> {
+  private async extractBOMData(content: string): Promise<BOMData | null> {
     // 检查是否包含BOM信息
     if (content.includes('元件清单') || content.includes('BOM') || content.includes('物料清单')) {
-      return this.bomGenerator.generateFromContent(content)
+      const bomItems = this.bomGenerator.generateFromContent(content)
+      const totalCost = bomItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0)
+      
+      return {
+        items: bomItems.map(item => ({
+          component: item.component,
+          quantity: item.quantity,
+          value: item.value,
+          package: item.package,
+          price: item.price,
+          manufacturer: item.manufacturer,
+          supplier: item.supplier
+        })),
+        totalCost
+      }
     }
     
     return null
@@ -263,7 +315,7 @@ export class AIService {
   async validateApiKey(provider: string, apiKey: string, apiUrl?: string): Promise<boolean> {
     try {
       const config: ProviderConfig = {
-        provider: provider as any,
+        provider: provider as 'openai' | 'claude' | 'gemini' | 'custom' | 'mock',
         apiKey,
         apiUrl: apiUrl || '',
         model: 'test'

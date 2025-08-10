@@ -1,9 +1,23 @@
 import axios, { AxiosResponse } from 'axios'
 import { message } from 'antd'
 
+// 动态获取API基础URL
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    // 浏览器环境
+    return window.location.hostname === 'localhost' 
+      ? 'http://localhost:3003/api'
+      : 'https://circuitsai-api.your-subdomain.workers.dev/api'
+  }
+  // Node.js环境
+  return process.env.NODE_ENV === 'production'
+    ? 'https://circuitsai-api.your-subdomain.workers.dev/api'
+    : 'http://localhost:3003/api'
+}
+
 // 创建axios实例
 const api = axios.create({
-  baseURL: 'http://localhost:3003/api',
+  baseURL: getApiBaseUrl(),
   timeout: 120000, // 增加到2分钟，AI回复需要更多时间
   headers: {
     'Content-Type': 'application/json'
