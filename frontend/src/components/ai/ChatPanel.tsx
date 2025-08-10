@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Input, Button, Avatar, message, Spin, Select } from 'antd'
 import { SendOutlined, UserOutlined, RobotOutlined, ClearOutlined, DownloadOutlined, SettingOutlined } from '@ant-design/icons'
-import { ChatMessage } from '../../../../shared/dist/index.js'
+import { ChatMessage } from '../../../../shared/src/types/index'
 import { aiAPI } from '../../services/api'
 import EnhancedAPISettings from '../settings/EnhancedAPISettings'
 import StatusIndicator from '../common/StatusIndicator'
