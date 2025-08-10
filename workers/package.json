@@ -1,7 +1,7 @@
 {
-  "name": "circuitsai-workers",
+  "name": "circuitai-workers",
   "version": "0.1.0",
-  "description": "CircuitsAI Cloudflare Workers API",
+  "description": "CircuitAI Cloudflare Workers API",
   "main": "src/index.ts",
   "scripts": {
     "dev": "wrangler dev",

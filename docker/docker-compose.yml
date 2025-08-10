@@ -13,7 +13,7 @@ services:
     depends_on:
       - backend
     networks:
-      - circuitsai-network
+      - circuitai-network
 
   # 后端服务
   backend:
@@ -24,7 +24,7 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://circuitsai:password@postgres:5432/circuitsai
+      - DATABASE_URL=postgresql://circuitai:password@postgres:5432/circuitai
       - REDIS_URL=redis://redis:6379
     env_file:
       - ../backend/.env
@@ -34,14 +34,14 @@ services:
     volumes:
       - ../backend/logs:/app/logs
     networks:
-      - circuitsai-network
+      - circuitai-network
 
   # PostgreSQL 数据库
   postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=circuitsai
-      - POSTGRES_USER=circuitsai
+      - POSTGRES_DB=circuitai
+      - POSTGRES_USER=circuitai
       - POSTGRES_PASSWORD=password
     ports:
       - "5432:5432"
@@ -49,7 +49,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - circuitsai-network
+      - circuitai-network
 
   # Redis 缓存
   redis:
@@ -60,7 +60,7 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
     networks:
-      - circuitsai-network
+      - circuitai-network
 
   # Nginx 反向代理 (可选)
   nginx:
@@ -75,12 +75,12 @@ services:
       - frontend
       - backend
     networks:
-      - circuitsai-network
+      - circuitai-network
 
 volumes:
   postgres_data:
   redis_data:
 
 networks:
-  circuitsai-network:
+  circuitai-network:
     driver: bridge

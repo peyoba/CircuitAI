@@ -1,4 +1,4 @@
-# 🚀 CircuitsAI Cloudflare 部署指南
+# 🚀 CircuitAI Cloudflare 部署指南
 
 ## 📋 部署前准备
 
@@ -22,7 +22,7 @@ git add .
 git commit -m "Initial commit for Cloudflare deployment"
 
 # 2. 添加远程仓库
-git remote add origin https://github.com/你的用户名/circuitsai.git
+git remote add origin https://github.com/peyoba/CircuitAI.git
 git push -u origin main
 ```
 
@@ -39,7 +39,7 @@ git push -u origin main
 
 3. **配置构建设置**
    ```
-   项目名称: circuitsai
+   项目名称: circuitai
    生产分支: main
    构建命令: npm run build:frontend
    构建输出目录: frontend/dist
@@ -73,8 +73,8 @@ git push -u origin main
 ### 第4步：更新API地址
 
 部署完成后，您会得到两个URL：
-- **前端**: `https://circuitsai.pages.dev`
-- **Workers**: `https://circuitsai-api.你的用户名.workers.dev`
+- **前端**: `https://circuitai.pages.dev`
+- **Workers**: `https://circuitai-api.peyoba.workers.dev`
 
 更新以下文件中的API地址：
 
@@ -82,13 +82,13 @@ git push -u origin main
 ```typescript
 return window.location.hostname === 'localhost' 
   ? 'http://localhost:3003/api'
-  : 'https://circuitsai-api.你的用户名.workers.dev/api'
+  : 'https://circuitai-api.peyoba.workers.dev/api'
 ```
 
 **workers/wrangler.toml**:
 ```toml
 [vars]
-CORS_ORIGIN = "https://circuitsai.pages.dev"
+CORS_ORIGIN = "https://circuitai.pages.dev"
 ```
 
 ### 第5步：重新部署
@@ -107,8 +107,8 @@ wrangler deploy
 ## 🎉 部署完成
 
 您的应用现在应该可以通过以下地址访问：
-- **前端**: https://circuitsai.pages.dev
-- **API**: https://circuitsai-api.你的用户名.workers.dev
+- **前端**: https://circuitai.pages.dev
+- **API**: https://circuitai-api.peyoba.workers.dev
 
 ## 🔧 故障排除
 

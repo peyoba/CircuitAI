@@ -1,8 +1,8 @@
-# CircuitsAI - 智能电路设计平台
+# CircuitAI - 智能电路设计平台
 
-[![开发状态](https://img.shields.io/badge/开发状态-Phase%202%20完成-brightgreen)](https://github.com/your-username/circuitsai)
-[![技术栈](https://img.shields.io/badge/技术栈-React%20%2B%20Node.js%20%2B%20TypeScript-blue)](https://github.com/your-username/circuitsai)
-[![AI支持](https://img.shields.io/badge/AI支持-OpenAI%20%2B%20Claude%20%2B%20Gemini-orange)](https://github.com/your-username/circuitsai)
+[![开发状态](https://img.shields.io/badge/开发状态-Phase%202%20完成-brightgreen)](https://github.com/peyoba/CircuitAI)
+[![技术栈](https://img.shields.io/badge/技术栈-React%20%2B%20Node.js%20%2B%20TypeScript-blue)](https://github.com/peyoba/CircuitAI)
+[![AI支持](https://img.shields.io/badge/AI支持-OpenAI%20%2B%20Claude%20%2B%20Gemini-orange)](https://github.com/peyoba/CircuitAI)
 
 > 🎯 **项目愿景**: 通过人工智能让复杂的电路设计变得简单易懂，即使是初学者也能设计出专业可靠的电路方案。
 
@@ -41,8 +41,8 @@
 ### 安装和启动
 ```bash
 # 克隆项目
-git clone https://github.com/your-username/circuitsai.git
-cd circuitsai
+git clone https://github.com/peyoba/CircuitAI.git
+cd CircuitAI
 
 # 安装所有依赖
 npm run install:all

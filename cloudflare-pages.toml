@@ -8,7 +8,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://your-workers.your-subdomain.workers.dev/:splat"
+  to = "https://circuitai-api.peyoba.workers.dev/:splat"
   status = 200
 
 [[headers]]

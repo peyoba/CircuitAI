@@ -1,12 +1,12 @@
-name = "circuitsai-api"
+name = "circuitai-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 [env.production]
-name = "circuitsai-api"
+name = "circuitai-api"
 
 [env.staging]
-name = "circuitsai-api-staging"
+name = "circuitai-api-staging"
 
 [[env.production.kv_namespaces]]
 binding = "CIRCUITS_KV"
@@ -14,7 +14,7 @@ id = "your-kv-namespace-id"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "circuitsai-db"
+database_name = "circuitai-db"
 database_id = "your-database-id"
 
 [vars]
