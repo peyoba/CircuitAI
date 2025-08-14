@@ -34,7 +34,7 @@ export default defineConfig({
   },
   define: {
     __API_BASE_URL__: JSON.stringify(process.env.NODE_ENV === 'production' 
-      ? 'https://circuitai-api.peyoba.workers.dev' 
+      ? '/api' 
       : 'http://localhost:3003'),
   },
   test: {
