@@ -7,11 +7,11 @@ const getApiBaseUrl = () => {
     // 浏览器环境
     return window.location.hostname === 'localhost' 
       ? 'http://localhost:3003/api'
-      : 'https://circuitai-api.peyoba660703.workers.dev/api'
+      : '/api'  // 使用相对路径，让Cloudflare Pages重定向生效
   }
   // Node.js环境
   return process.env.NODE_ENV === 'production'
-    ? 'https://circuitai-api.peyoba660703.workers.dev/api'
+    ? '/api'  // 使用相对路径，让Cloudflare Pages重定向生效
     : 'http://localhost:3003/api'
 }
 
