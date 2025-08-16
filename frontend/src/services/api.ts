@@ -4,14 +4,17 @@ import { message } from 'antd'
 // 动态获取API基础URL
 const getApiBaseUrl = () => {
   if (typeof window !== 'undefined') {
-    // 浏览器环境
-    return window.location.hostname === 'localhost' 
-      ? 'http://localhost:3003/api'
-      : 'https://circuitai-api.peyoba660703.workers.dev/api'  // 更新为新的Workers地址
+    // 浏览器环境 - 强制使用Workers API地址
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3003/api'
+    } else {
+      // 生产环境强制使用Workers地址
+      return 'https://circuitai-api.peyoba660703.workers.dev/api'
+    }
   }
   // Node.js环境
   return process.env.NODE_ENV === 'production'
-    ? 'https://circuitai-api.peyoba660703.workers.dev/api'  // 更新为新的Workers地址
+    ? 'https://circuitai-api.peyoba660703.workers.dev/api'
     : 'http://localhost:3003/api'
 }
 
