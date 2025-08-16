@@ -3,6 +3,12 @@ export class AIService {
   async chat(message: string, conversationId: string, provider: string, apiConfig: any) {
     // 根据provider调用不同的AI服务
     switch (provider) {
+      case 'openai':
+        return await this.callOpenAI(message, apiConfig)
+      case 'claude':
+        return await this.callClaude(message, apiConfig)
+      case 'gemini':
+        return await this.callGemini(message, apiConfig)
       case 'custom':
         return await this.callCustomAPI(message, apiConfig)
       case 'mock':
@@ -58,6 +64,91 @@ export class AIService {
       response: data.choices[0].message.content,
       conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       provider: 'custom'
+    }
+  }
+
+  private async callOpenAI(message: string, config: any) {
+    const { apiKey, model = 'gpt-3.5-turbo' } = config
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: message }],
+        max_tokens: 2000,
+        temperature: 0.7
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API调用失败: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return {
+      response: data.choices[0].message.content,
+      conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      provider: 'openai'
+    }
+  }
+
+  private async callClaude(message: string, config: any) {
+    const { apiKey, model = 'claude-3-sonnet-20240229' } = config
+    
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: message }]
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`Claude API调用失败: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return {
+      response: data.content[0].text,
+      conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      provider: 'claude'
+    }
+  }
+
+  private async callGemini(message: string, config: any) {
+    const { apiKey, model = 'gemini-pro' } = config
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: message }]
+        }]
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`Gemini API调用失败: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return {
+      response: data.candidates[0].content.parts[0].text,
+      conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      provider: 'gemini'
     }
   }
 
