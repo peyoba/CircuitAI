@@ -137,9 +137,19 @@ export class AIService {
         temperature: 0.7
       }
       
-      console.log('Custom API请求:', { url: `${apiUrl}/v1/chat/completions`, body: requestBody })
+      // 智能处理不同API的路径
+      let fullUrl = apiUrl
+      if (apiUrl.includes('volces.com') || apiUrl.includes('ark.cn')) {
+        // 豆包API格式
+        fullUrl = `${apiUrl}/chat/completions`
+      } else if (!apiUrl.includes('/chat/completions') && !apiUrl.includes('/v1/chat/completions')) {
+        // 标准OpenAI格式
+        fullUrl = `${apiUrl}/v1/chat/completions`
+      }
       
-      const response = await fetch(`${apiUrl}/v1/chat/completions`, {
+      console.log('Custom API请求:', { url: fullUrl, body: requestBody })
+      
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
