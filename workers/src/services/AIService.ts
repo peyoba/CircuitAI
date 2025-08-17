@@ -108,40 +108,93 @@ export class AIService {
   }
 
   private async callCustomAPI(message: string, config: any) {
-    const { apiUrl, apiKey, model } = config
-    
-    const response = await fetch(`${apiUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
+    try {
+      const { apiUrl, apiKey, model } = config
+      
+      console.log('Custom API调用开始:', { 
+        apiUrl: apiUrl?.substring(0, 50) + '...', 
+        model, 
+        hasApiKey: !!apiKey,
+        messageLength: message.length
+      })
+      
+      if (!apiUrl || !apiKey || !model) {
+        throw new Error(`Custom API配置不完整: apiUrl=${!!apiUrl}, apiKey=${!!apiKey}, model=${!!model}`)
+      }
+      
+      const requestBody = {
         model,
         messages: [
           { role: 'user', content: message }
         ],
         max_tokens: 2000,
         temperature: 0.7
+      }
+      
+      console.log('Custom API请求:', { url: `${apiUrl}/v1/chat/completions`, body: requestBody })
+      
+      const response = await fetch(`${apiUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(requestBody)
       })
-    })
 
-    if (!response.ok) {
-      throw new Error(`API调用失败: ${response.status} ${response.statusText}`)
-    }
+      console.log('Custom API响应状态:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Custom API错误响应:', { 
+          status: response.status, 
+          statusText: response.statusText, 
+          body: errorText 
+        })
+        throw new Error(`Custom API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
+      }
 
-    const data = await response.json()
-    const responseText = data.choices[0].message.content
-    
-    // 提取电路数据和BOM数据
-    const { circuit_data, bom_data } = this.extractDataFromResponse(responseText)
-    
-    return {
-      response: responseText,
-      conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      provider: 'custom',
-      circuit_data,
-      bom_data
+      const data = await response.json()
+      console.log('Custom API响应数据结构:', Object.keys(data))
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('Custom API响应格式异常:', data)
+        throw new Error('Custom API返回数据格式异常')
+      }
+      
+      const responseText = data.choices[0].message.content
+      console.log('Custom API调用成功，响应长度:', responseText.length)
+      
+      // 提取电路数据和BOM数据
+      let circuit_data = null
+      let bom_data = null
+      
+      try {
+        const extracted = this.extractDataFromResponse(responseText)
+        circuit_data = extracted.circuit_data
+        bom_data = extracted.bom_data
+      } catch (extractError) {
+        console.error('Custom API数据提取失败:', extractError.message)
+      }
+      
+      return {
+        response: responseText,
+        conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        provider: 'custom',
+        circuit_data,
+        bom_data
+      }
+    } catch (error) {
+      console.error('Custom API调用异常:', error)
+      if (error.message.includes('fetch')) {
+        throw new Error('Custom API网络连接失败，请检查API地址和网络连接')
+      } else if (error.message.includes('401')) {
+        throw new Error('Custom API密钥无效或已过期')
+      } else if (error.message.includes('403')) {
+        throw new Error('Custom API访问被拒绝，请检查API密钥权限')
+      } else {
+        throw new Error(`Custom API调用失败: ${error.message}`)
+      }
     }
   }
 
