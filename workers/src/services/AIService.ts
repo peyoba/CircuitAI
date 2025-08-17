@@ -49,7 +49,7 @@ export class AIService {
         response = await this.callGemini(message, apiConfig, conversationHistory)
         break
       case 'custom':
-        response = await this.callCustomAPI(fullPrompt, apiConfig)
+        response = await this.callCustomAPI(message, apiConfig)
         break
       case 'mock':
         response = await this.mockResponse(message, conversationHistory)
@@ -109,9 +109,15 @@ export class AIService {
 
   private async callCustomAPI(message: string, config: any) {
     try {
+      // 首先检查config是否存在
+      if (!config) {
+        throw new Error('Custom API配置为空，请设置API URL、密钥和模型')
+      }
+      
       const { apiUrl, apiKey, model } = config
       
       console.log('Custom API调用开始:', { 
+        hasConfig: !!config,
         apiUrl: apiUrl?.substring(0, 50) + '...', 
         model, 
         hasApiKey: !!apiKey,
