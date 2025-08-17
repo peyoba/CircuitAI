@@ -30,6 +30,7 @@ export class AIService {
     const fullPrompt = this.buildPromptWithHistory(message, conversationHistory)
     
     // 根据provider调用不同的AI服务
+    let response: any
     switch (provider) {
       case 'openai':
         response = await this.callOpenAI(fullPrompt, apiConfig)
@@ -196,20 +197,26 @@ export class AIService {
   private async callGemini(message: string, config: any) {
     const { apiKey, model = 'gemini-pro' } = config
     
+    console.log('Gemini API调用:', { model, messageLength: message.length })
+    
+    const requestBody = {
+      contents: [{
+        parts: [{ text: message }]
+      }]
+    }
+    
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: message }]
-        }]
-      })
+      body: JSON.stringify(requestBody)
     })
 
     if (!response.ok) {
-      throw new Error(`Gemini API调用失败: ${response.status} ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('Gemini API错误响应:', { status: response.status, statusText: response.statusText, body: errorText })
+      throw new Error(`Gemini API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
     }
 
     const data = await response.json()
