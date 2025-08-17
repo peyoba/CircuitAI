@@ -33,13 +33,13 @@ export class AIService {
     let response: any
     switch (provider) {
       case 'openai':
-        response = await this.callOpenAI(fullPrompt, apiConfig)
+        response = await this.callOpenAI(message, apiConfig, conversationHistory)
         break
       case 'claude':
         response = await this.callClaude(fullPrompt, apiConfig)
         break
       case 'gemini':
-        response = await this.callGemini(fullPrompt, apiConfig)
+        response = await this.callGemini(message, apiConfig, conversationHistory)
         break
       case 'custom':
         response = await this.callCustomAPI(fullPrompt, apiConfig)
@@ -122,7 +122,7 @@ export class AIService {
     }
   }
 
-  private async callOpenAI(message: string, config: any) {
+  private async callOpenAI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
     const { apiKey, model = 'gpt-3.5-turbo' } = config
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -133,7 +133,7 @@ export class AIService {
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: 'user', content: message }],
+        messages: this.buildOpenAIMessages(message, conversationHistory),
         max_tokens: 2000,
         temperature: 0.7
       })
@@ -194,16 +194,47 @@ export class AIService {
     }
   }
 
-  private async callGemini(message: string, config: any) {
+  private async callGemini(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
     const { apiKey, model = 'gemini-pro' } = config
     
-    console.log('Gemini API调用:', { model, messageLength: message.length })
+    console.log('Gemini API调用:', { model, messageLength: message.length, historyLength: conversationHistory?.length || 0 })
     
-    const requestBody = {
-      contents: [{
-        parts: [{ text: message }]
-      }]
+    // 构建Gemini的多轮对话格式
+    const contents = []
+    
+    // 如果是第一条消息，添加系统提示词
+    if (!conversationHistory || conversationHistory.length <= 1) {
+      const systemPrompt = this.buildCircuitDesignPrompt(message)
+      contents.push({
+        role: 'user',
+        parts: [{ text: systemPrompt }]
+      })
+    } else {
+      // 添加对话历史（最近4轮对话）
+      const recentHistory = conversationHistory.slice(-8) // 4轮对话 = 8条消息
+      for (let i = 0; i < recentHistory.length - 1; i++) { // 排除当前消息
+        const msg = recentHistory[i]
+        if (msg.role === 'user') {
+          contents.push({
+            role: 'user',
+            parts: [{ text: msg.content }]
+          })
+        } else if (msg.role === 'assistant') {
+          contents.push({
+            role: 'model',
+            parts: [{ text: msg.content }]
+          })
+        }
+      }
+      
+      // 添加当前用户消息
+      contents.push({
+        role: 'user',
+        parts: [{ text: `基于前面的对话，请回答：${message}` }]
+      })
     }
+    
+    const requestBody = { contents }
     
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -842,5 +873,37 @@ ${currentMessage}
 请保持回复的专业性和连贯性。`
 
     return prompt
+  }
+
+  // 构建OpenAI消息格式
+  private buildOpenAIMessages(message: string, conversationHistory?: Array<{role: string, content: string}>) {
+    const messages = []
+    
+    // 如果是第一条消息，添加系统提示词
+    if (!conversationHistory || conversationHistory.length <= 1) {
+      const systemPrompt = this.buildCircuitDesignPrompt(message)
+      messages.push({ role: 'user', content: systemPrompt })
+    } else {
+      // 添加系统指导
+      messages.push({ 
+        role: 'system', 
+        content: '你是CircuitsAI的资深硬件电路设计总工程师。基于对话历史，继续提供专业的电路设计服务。' 
+      })
+      
+      // 添加对话历史（最近8条消息）
+      const recentHistory = conversationHistory.slice(-8)
+      for (let i = 0; i < recentHistory.length - 1; i++) { // 排除当前消息
+        const msg = recentHistory[i]
+        messages.push({ 
+          role: msg.role === 'assistant' ? 'assistant' : 'user', 
+          content: msg.content 
+        })
+      }
+      
+      // 添加当前用户消息
+      messages.push({ role: 'user', content: message })
+    }
+    
+    return messages
   }
 }
