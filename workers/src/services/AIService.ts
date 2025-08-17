@@ -780,63 +780,31 @@ export class AIService {
     return null
   }
   
-  // 构建完善的电路设计提示词
+  // 构建专业而结构化的电路设计提示词
   private buildCircuitDesignPrompt(userMessage: string): string {
-    return `你是世界级的硬件电路设计专家，拥有20年的工程经验，专精于模拟电路、数字电路、电源设计、射频电路、高速电路等所有领域。你的回答必须达到业界顶尖水准，像Gemini-2.5-Pro那样深入、专业、有条理。
-
-## 设计理念：
-- **深度分析**：每个设计都要从第一性原理出发，给出详细的理论分析和数学推导
-- **工程实用**：提供具体的元件型号、参数计算、性能评估
-- **系统思维**：考虑所有影响因素：精度、噪声、温漂、功耗、散热、EMC
-- **质量保证**：给出测试方法、调试指南、潜在问题和解决方案
+    return `你是世界顶尖的硬件电路设计专家，具有20年的工程经验，专精于所有电子工程领域。请以最高专业水准回答用户问题。
 
 ## 专业要求：
-- 使用准确的技术术语和工程表达
-- 提供详细的数学计算和公式推导
-- 给出具体的元件选型和性能指标
-- 分析误差来源和改进方法
-- 考虑实际工程约束和制造成本
+- 深度的理论分析和数学推导
+- 具体的元件选型和性能计算  
+- 详细的实现指南和调试方法
+- 全面的工程考虑（性能、成本、制造）
 
-用户需求：${userMessage}
+## 回答风格：
+像参考案例那样专业、深入、有条理。使用准确的技术术语，提供完整的计算过程，给出具体的元件型号。
 
-请提供完整的专业级设计方案，包括：
+用户问题：${userMessage}
 
-### 1. 设计目标分析
-明确技术指标、约束条件和挑战点
+---
 
-### 2. 拓扑结构选择
-说明为什么选择这种电路拓扑，对比其他方案的优劣
+请提供专业的技术分析。如果涉及电路设计，请在回答中包含：
 
-### 3. 详细电路设计
+1. **电路原理图**（使用ASCII字符绘制，清晰标注元件值和连接）
+2. **关键元件**（具体型号、参数、选型依据）  
+3. **性能计算**（公式推导、数值计算、误差分析）
+4. **实现指南**（PCB布局、调试方法、注意事项）
 
-\`\`\`ascii
-[绘制完整的电路原理图，标注所有元件值、连接关系、关键节点电压]
-\`\`\`
-
-### 4. 核心元件选型与计算
-逐个分析每个关键元件：
-- **计算过程**：给出完整的数学推导
-- **元件选择**：具体型号、规格、性能指标
-- **替代方案**：备选元件和权衡考虑
-
-### 5. 性能分析
-- **精度分析**：误差来源和量化计算
-- **噪声分析**：噪声源识别和抑制方法
-- **稳定性分析**：环路稳定性和补偿设计
-- **温度特性**：温漂分析和补偿措施
-
-### 6. 实现指南
-- **PCB布局要点**：关键布线、地线设计、元件布局
-- **调试方法**：测试点设置、调试步骤、常见问题
-- **制造考虑**：工艺要求、成本优化、批量生产
-
-### 7. 元件清单
-| 位号 | 元件 | 具体型号 | 关键参数 | 封装 | 价格 | 备注 |
-
-### 8. 设计验证
-给出仿真建议、测试方法和性能验证流程
-
-请务必提供深入、专业、实用的完整设计方案！`
+如果有元件清单，请列出具体的元件型号、规格、价格等信息。`
   }
 
   // 构建包含历史的提示词
@@ -911,43 +879,104 @@ ${currentMessage}
     return messages
   }
 
-  // 强制从响应中提取BOM - 最后的备用方案
+  // 智能从专业回答中提取BOM - 增强版
   private forceExtractBOM(response: string) {
     const items = []
     
-    // 查找常见的电子元件
+    // 扩展的元件识别模式
     const componentPatterns = [
-      { pattern: /([RC]\d+).*?(\d+[kKmMuUnN]?[Ω\u03A9])/g, type: 'resistor' },
-      { pattern: /([LC]\d+).*?(\d+[uUnNpP]?[FH])/g, type: 'capacitor' },
-      { pattern: /(LED\d*).*?(红色|绿色|蓝色|白色|\d+mm)/g, type: 'led' },
-      { pattern: /(U\d+).*?(LM\d+|NE\d+|74\w+|ATmega\w+)/g, type: 'ic' },
-      { pattern: /(Q\d+).*?(2N\d+|BC\d+|MOSFET)/g, type: 'transistor' }
+      // 电阻模式
+      { pattern: /([RC]\d+).*?(\d+[kKmMuUnN]?[Ω\u03A9Ω])/gi, type: 'resistor' },
+      { pattern: /(电阻|resistor).*?(\d+[kKmMuUnN]?[Ω\u03A9Ω])/gi, type: 'resistor' },
+      
+      // 电容模式  
+      { pattern: /([LC]\d+).*?(\d+[uUnNpPmMfF]?F)/gi, type: 'capacitor' },
+      { pattern: /(电容|capacitor).*?(\d+[uUnNpPmMfF]?F)/gi, type: 'capacitor' },
+      
+      // LED模式
+      { pattern: /(LED\d*).*?(红色|绿色|蓝色|白色|yellow|red|green|blue|\d+mm)/gi, type: 'led' },
+      
+      // IC模式 - 扩展常见型号
+      { pattern: /(U\d+).*?(LM\d+|NE\d+|74\w+|ATmega\w+|STM32|ESP32|AD\d+|OPA\d+|TL\d+|MC\d+)/gi, type: 'ic' },
+      { pattern: /(芯片|IC|运放|MCU).*?(LM\d+|NE\d+|74\w+|ATmega\w+|STM32|ESP32|AD\d+|OPA\d+|TL\d+)/gi, type: 'ic' },
+      
+      // 晶体管模式
+      { pattern: /(Q\d+|M\d+).*?(2N\d+|BC\d+|MOSFET|IRLZ\d+|IRF\d+|BSS\d+)/gi, type: 'transistor' },
+      { pattern: /(MOSFET|晶体管|三极管).*?(2N\d+|BC\d+|IRLZ\d+|IRF\d+|BSS\d+)/gi, type: 'transistor' },
+      
+      // 二极管
+      { pattern: /(D\d+).*?(1N\d+|BAT\d+|肖特基|Schottky)/gi, type: 'diode' },
+      
+      // 电感
+      { pattern: /(L\d+).*?(\d+[uUnNmM]?H)/gi, type: 'inductor' }
     ]
     
     let itemId = 1
+    const foundComponents = new Set() // 避免重复
+    
     componentPatterns.forEach(({ pattern, type }) => {
       let match
       while ((match = pattern.exec(response)) !== null) {
-        const [, reference, value] = match
-        items.push({
-          component: reference,
-          quantity: 1,
-          value: value,
-          package: this.getDefaultPackage(reference),
-          price: this.getComponentPrice(type),
-          description: `${type} 元件`
-        })
-        itemId++
+        const [fullMatch, reference, value] = match
+        const componentKey = `${reference || type}_${value}`
+        
+        if (!foundComponents.has(componentKey)) {
+          foundComponents.add(componentKey)
+          
+          // 尝试从上下文中提取更多信息
+          const contextMatch = response.slice(Math.max(0, match.index - 100), match.index + 100)
+          const modelMatch = contextMatch.match(/(型号|model|part).*?([A-Z0-9\-_]+)/i)
+          const packageMatch = contextMatch.match(/(封装|package).*?(SOT|DIP|SOIC|TSSOP|QFN|BGA|\d+mm)/i)
+          
+          items.push({
+            component: reference || `${type.toUpperCase()}${itemId}`,
+            quantity: 1,
+            value: value,
+            model: modelMatch ? modelMatch[2] : this.getDefaultModel(type),
+            package: packageMatch ? packageMatch[2] : this.getDefaultPackage(reference || type),
+            price: this.getComponentPrice(type),
+            description: this.getComponentDescription(type, value)
+          })
+          itemId++
+        }
       }
     })
     
     if (items.length > 0) {
       const totalCost = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-      console.log('强制提取BOM成功，项目数:', items.length)
+      console.log('智能提取BOM成功，项目数:', items.length)
       return { items, totalCost }
     }
     
     console.log('无法提取任何BOM数据')
     return null
+  }
+
+  // 获取默认型号
+  private getDefaultModel(type: string): string {
+    const models = {
+      'resistor': '1/4W 5%',
+      'capacitor': 'X7R',
+      'led': 'Standard LED',
+      'ic': 'DIP Package',
+      'transistor': 'TO-220',
+      'diode': '1N4148',
+      'inductor': 'Wirewound'
+    }
+    return models[type] || 'Standard'
+  }
+
+  // 获取元件描述
+  private getComponentDescription(type: string, value: string): string {
+    const descriptions = {
+      'resistor': `${value} 精密电阻`,
+      'capacitor': `${value} 陶瓷电容`,
+      'led': `${value} LED指示灯`,
+      'ic': `${value} 集成电路`,
+      'transistor': `${value} 功率晶体管`,
+      'diode': `${value} 整流二极管`,
+      'inductor': `${value} 电感`
+    }
+    return descriptions[type] || `${value} 电子元件`
   }
 }
