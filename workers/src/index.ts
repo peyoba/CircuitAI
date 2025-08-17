@@ -10,7 +10,15 @@ const app = new Hono()
 // 中间件
 app.use('*', logger())
 app.use('*', cors({
-  origin: ['https://circuitai.pages.dev', 'https://*.circuitai.pages.dev', 'http://localhost:3002'],
+  origin: [
+    'https://circuitai.pages.dev', 
+    'https://*.circuitai.pages.dev',
+    'https://www.circuitai.top',
+    'https://circuitai.top',
+    'https://main.circuitai.pages.dev',
+    'http://localhost:3002',
+    'http://localhost:3000'
+  ],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
 }))

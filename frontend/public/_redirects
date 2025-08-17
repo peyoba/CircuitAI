@@ -1,1 +1,5 @@
+# API重定向到Workers
 /api/* https://circuitai-api.peyoba660703.workers.dev/:splat 200
+
+# SPA回退（Cloudflare Pages会自动处理静态文件）
+/* /index.html 200

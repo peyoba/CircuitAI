@@ -3,19 +3,21 @@ import { message } from 'antd'
 
 // 动态获取API基础URL
 const getApiBaseUrl = () => {
-  // 生产环境直接使用Workers API地址
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (isProduction) {
+  // 强制使用Workers API地址，无论什么环境
+  if (typeof window !== 'undefined') {
+    // 浏览器环境
+    const hostname = window.location.hostname;
+    
+    // 本地开发环境
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3003/api';
+    }
+    
+    // 生产环境（包括Pages和其他域名）
     return 'https://circuitai-api.peyoba660703.workers.dev/api';
   }
-
-  // 本地开发环境
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:3003/api';
-  }
   
-  // 默认回退到生产环境地址
+  // 服务端渲染环境，默认使用Workers地址
   return 'https://circuitai-api.peyoba660703.workers.dev/api';
 }
 

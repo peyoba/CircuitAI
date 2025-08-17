@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Modal, Form, Input, Select, Button, message, Space, Card, Alert, AutoComplete } from 'antd'
 import { SettingOutlined, EyeInvisibleOutlined, EyeTwoTone, CheckOutlined } from '@ant-design/icons'
+import { aiAPI } from '../../services/api'
 
 const { Option } = Select
 
@@ -97,23 +98,15 @@ const APISettings = ({ visible, onClose, onSave }: APISettingsProps) => {
       setTesting(true)
       setTestResult(null)
 
-      // 调用后端API测试接口
-      const response = await fetch('/api/ai/test-config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          provider: values.provider,
-          model: values.model,
-          apiKey: values.apiKey,
-          apiUrl: values.apiUrl
-        })
-      })
+      // 通过 aiAPI 测试（统一走 Workers，避免 Pages 405）
+      const result = await aiAPI.testApiConfig({
+        provider: values.provider,
+        model: values.model,
+        apiKey: values.apiKey,
+        apiUrl: values.apiUrl
+      } as any)
 
-      const result = await response.json()
-      
-      if (response.ok && result.success) {
+      if (result && result.success) {
         setTestResult({
           success: true,
           message: `连接成功！模型：${values.model}`
@@ -121,7 +114,7 @@ const APISettings = ({ visible, onClose, onSave }: APISettingsProps) => {
       } else {
         setTestResult({
           success: false,
-          message: result.message || 'API连接失败'
+          message: (result && result.error) || 'API连接失败'
         })
       }
     } catch (error) {
@@ -225,9 +218,11 @@ const APISettings = ({ visible, onClose, onSave }: APISettingsProps) => {
             placeholder="输入模型名称，如：gpt-4"
             allowClear
             options={getCurrentProvider()?.modelExamples.map(model => ({ value: model, label: model })) || []}
-            filterOption={(inputValue, option) =>
-              option?.value.toLowerCase().includes(inputValue.toLowerCase()) || false
-            }
+            filterOption={(inputValue, option) => {
+              const ov = typeof option?.value === 'string' ? option.value : String(option?.value ?? '')
+              const iv = typeof inputValue === 'string' ? inputValue : String(inputValue ?? '')
+              return ov.toLowerCase().includes(iv.toLowerCase())
+            }}
           />
         </Form.Item>
 

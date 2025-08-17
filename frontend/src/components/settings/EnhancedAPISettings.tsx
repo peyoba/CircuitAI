@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Modal, Form, Input, Select, Button, message, Space, Card, Alert, Divider, Switch, AutoComplete } from 'antd'
 import { SettingOutlined, EyeInvisibleOutlined, EyeTwoTone, CheckOutlined, PlusOutlined } from '@ant-design/icons'
+import { aiAPI } from '../../services/api'
 
 const { Option } = Select
 
@@ -290,27 +291,20 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
         }, {} as Record<string, string>)
       }
 
-      // 调用测试接口
+      // 调用测试接口（通过 aiAPI 转发到 Workers，避免 Pages 405）
       console.log('发送测试请求:', config)
-      const response = await fetch('/api/ai/test-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      })
-
-      const result = await response.json()
-      console.log('响应状态:', response.status)
-      console.log('响应结果:', result)
+      const result = await aiAPI.testApiConfig(config as any)
+      console.log('测试结果:', result)
       
-      if (result.success) {
+      if (result && result.success) {
         setTestResult({
           success: true,
-          message: 'API连接测试成功！'
+          message: result.message || 'API连接测试成功！'
         })
       } else {
         setTestResult({
           success: false,
-          message: result.error || 'API连接测试失败'
+          message: (result && result.error) || 'API连接测试失败'
         })
       }
     } catch (error) {
@@ -480,9 +474,11 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
             placeholder="输入模型名称，如：gpt-4, claude-3-5-sonnet-20241022"
             allowClear
             options={getCurrentProvider()?.models.map(model => ({ value: model, label: model })) || []}
-            filterOption={(inputValue, option) =>
-              option?.value.toLowerCase().includes(inputValue.toLowerCase()) || false
-            }
+            filterOption={(inputValue, option) => {
+              const ov = typeof option?.value === 'string' ? option.value : String(option?.value ?? '')
+              const iv = typeof inputValue === 'string' ? inputValue : String(inputValue ?? '')
+              return ov.toLowerCase().includes(iv.toLowerCase())
+            }}
           />
         </Form.Item>
 
