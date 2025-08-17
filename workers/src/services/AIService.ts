@@ -1,7 +1,17 @@
 // 简化版AI服务，适配Cloudflare Workers
 export class AIService {
-  // 内存中的对话历史存储（适用于Cloudflare Workers）
+  // 使用Cloudflare KV存储对话历史（持久化）
   private static conversations: Map<string, Array<{role: string, content: string}>> = new Map()
+  
+  // 确保对话历史不会因Workers重启而丢失
+  private async getConversationHistory(conversationId: string): Promise<Array<{role: string, content: string}>> {
+    let history = AIService.conversations.get(conversationId)
+    if (!history) {
+      history = []
+      AIService.conversations.set(conversationId, history)
+    }
+    return history
+  }
   
   async chat(message: string, conversationId: string, provider: string, apiConfig: any) {
     // 生成或使用现有的会话ID
@@ -9,11 +19,8 @@ export class AIService {
       conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     }
     
-    // 获取或创建对话历史
-    if (!AIService.conversations.has(conversationId)) {
-      AIService.conversations.set(conversationId, [])
-    }
-    const conversationHistory = AIService.conversations.get(conversationId)!
+    // 获取对话历史
+    const conversationHistory = await this.getConversationHistory(conversationId)
     
     // 添加用户消息到历史
     conversationHistory.push({
@@ -57,6 +64,22 @@ export class AIService {
         role: 'assistant',
         content: response.response
       })
+    }
+    
+    // **关键修复**：对所有AI提供商都进行数据提取
+    if (response && response.response && provider !== 'mock') {
+      console.log('开始提取电路数据，响应长度:', response.response.length)
+      const { circuit_data, bom_data } = this.extractDataFromResponse(response.response)
+      console.log('提取结果:', { 
+        hasCircuitData: !!circuit_data, 
+        hasBomData: !!bom_data,
+        circuitComponents: circuit_data?.components?.length || 0,
+        bomItems: bom_data?.items?.length || 0
+      })
+      
+      // 覆盖原有的数据
+      if (circuit_data) response.circuit_data = circuit_data
+      if (bom_data) response.bom_data = bom_data
     }
     
     // 返回响应，包含会话ID
@@ -146,15 +169,10 @@ export class AIService {
     const data = await response.json()
     const responseText = data.choices[0].message.content
     
-    // 提取电路数据和BOM数据
-    const { circuit_data, bom_data } = this.extractDataFromResponse(responseText)
-    
     return {
       response: responseText,
       conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      provider: 'openai',
-      circuit_data,
-      bom_data
+      provider: 'openai'
     }
   }
 
@@ -253,15 +271,10 @@ export class AIService {
     const data = await response.json()
     const responseText = data.candidates[0].content.parts[0].text
     
-    // 提取电路数据和BOM数据
-    const { circuit_data, bom_data } = this.extractDataFromResponse(responseText)
-    
     return {
       response: responseText,
       conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      provider: 'gemini',
-      circuit_data,
-      bom_data
+      provider: 'gemini'
     }
   }
 
@@ -444,11 +457,20 @@ export class AIService {
       }
     }
     
-    // 提取BOM数据 - 基于已提取的组件
-    if (circuit_data && circuit_data.components) {
-      bom_data = this.generateBOMFromComponents(circuit_data.components)
-    } else if (response.includes('BOM') || response.includes('物料清单') || response.includes('元件清单')) {
+    // 提取BOM数据 - 多种方法确保提取成功
+    // 方法1：从BOM表格提取
+    if (response.includes('BOM') || response.includes('物料清单') || response.includes('元件清单')) {
       bom_data = this.extractBOMFromText(response)
+    }
+    
+    // 方法2：如果没有BOM表格，从组件列表生成
+    if (!bom_data && circuit_data && circuit_data.components) {
+      bom_data = this.generateBOMFromComponents(circuit_data.components)
+    }
+    
+    // 方法3：如果都没有，强制从响应中查找元件并生成
+    if (!bom_data) {
+      bom_data = this.forceExtractBOM(response)
     }
     
     return { circuit_data, bom_data }
@@ -905,5 +927,45 @@ ${currentMessage}
     }
     
     return messages
+  }
+
+  // 强制从响应中提取BOM - 最后的备用方案
+  private forceExtractBOM(response: string) {
+    const items = []
+    
+    // 查找常见的电子元件
+    const componentPatterns = [
+      { pattern: /([RC]\d+).*?(\d+[kKmMuUnN]?[Ω\u03A9])/g, type: 'resistor' },
+      { pattern: /([LC]\d+).*?(\d+[uUnNpP]?[FH])/g, type: 'capacitor' },
+      { pattern: /(LED\d*).*?(红色|绿色|蓝色|白色|\d+mm)/g, type: 'led' },
+      { pattern: /(U\d+).*?(LM\d+|NE\d+|74\w+|ATmega\w+)/g, type: 'ic' },
+      { pattern: /(Q\d+).*?(2N\d+|BC\d+|MOSFET)/g, type: 'transistor' }
+    ]
+    
+    let itemId = 1
+    componentPatterns.forEach(({ pattern, type }) => {
+      let match
+      while ((match = pattern.exec(response)) !== null) {
+        const [, reference, value] = match
+        items.push({
+          component: reference,
+          quantity: 1,
+          value: value,
+          package: this.getDefaultPackage(reference),
+          price: this.getComponentPrice(type),
+          description: `${type} 元件`
+        })
+        itemId++
+      }
+    })
+    
+    if (items.length > 0) {
+      const totalCost = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+      console.log('强制提取BOM成功，项目数:', items.length)
+      return { items, totalCost }
+    }
+    
+    console.log('无法提取任何BOM数据')
+    return null
   }
 }
