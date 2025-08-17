@@ -543,79 +543,136 @@ export class AIService {
 
   // 智能提取电路数据
   private extractCircuitData(response: string) {
-    // 1. 寻找代码块中的电路图
-    const codeBlockRegex = /```([^`]*?)```/gs
-    const codeBlocks = Array.from(response.matchAll(codeBlockRegex))
-    
-    let ascii = null
-    for (const match of codeBlocks) {
-      const cleanBlock = match[1].trim()
-      if (this.isCircuitDiagram(cleanBlock)) {
-        ascii = cleanBlock
-        break
+    try {
+      // 1. 寻找代码块中的电路图
+      let ascii = null
+      try {
+        const codeBlockRegex = /```([^`]*?)```/gs
+        const codeBlocks = Array.from(response.matchAll(codeBlockRegex))
+        
+        for (const match of codeBlocks) {
+          const cleanBlock = match[1].trim()
+          if (this.isCircuitDiagram(cleanBlock)) {
+            ascii = cleanBlock
+            break
+          }
+        }
+      } catch (error) {
+        console.log('代码块提取失败:', error.message)
       }
-    }
-    
-    // 2. 如果没找到代码块，寻找明显的电路结构
-    if (!ascii) {
-      ascii = this.findCircuitInText(response)
-    }
-    
-    // 3. 提取电路描述、元件和连接
-    const description = this.extractDescription(response)
-    const components = this.extractComponents(response)
-    const connections = this.extractConnections(response)
-    
-    console.log('电路提取结果:', {
-      hasAscii: !!ascii,
-      asciiLength: ascii?.length || 0,
-      description: description?.substring(0, 100) + '...',
-      componentsCount: components.length,
-      connectionsCount: connections.length
-    })
-    
-    if (ascii || components.length > 0) {
-      return {
-        ascii: ascii || '// 电路图提取中...',
-        description: description || '电路设计说明',
-        components,
-        connections
+      
+      // 2. 如果没找到代码块，寻找明显的电路结构
+      if (!ascii) {
+        try {
+          ascii = this.findCircuitInText(response)
+        } catch (error) {
+          console.log('文本电路提取失败:', error.message)
+        }
       }
+      
+      // 3. 提取电路描述、元件和连接
+      let description = ''
+      let components = []
+      let connections = []
+      
+      try {
+        description = this.extractDescription(response) || '电路设计说明'
+      } catch (error) {
+        console.log('描述提取失败:', error.message)
+        description = '电路设计说明'
+      }
+      
+      try {
+        components = this.extractComponents(response) || []
+      } catch (error) {
+        console.log('元件提取失败:', error.message)
+        components = []
+      }
+      
+      try {
+        connections = this.extractConnections(response) || []
+      } catch (error) {
+        console.log('连接提取失败:', error.message)
+        connections = []
+      }
+      
+      console.log('电路提取结果:', {
+        hasAscii: !!ascii,
+        asciiLength: ascii?.length || 0,
+        description: description?.substring(0, 100) + '...',
+        componentsCount: components.length,
+        connectionsCount: connections.length
+      })
+      
+      if (ascii || components.length > 0) {
+        return {
+          ascii: ascii || '// 电路图提取中...',
+          description,
+          components,
+          connections
+        }
+      }
+      
+      return null
+    } catch (error) {
+      console.log('电路数据提取全部失败:', error.message)
+      return null
     }
-    
-    return null
   }
 
   // 智能提取BOM数据
   private extractBOMData(response: string, circuit_data: any) {
-    let bom_data = null
-    
-    // 策略1: 寻找明确的BOM表格
-    bom_data = this.extractBOMFromTable(response)
-    if (bom_data && bom_data.items.length > 0) {
-      console.log('策略1成功: BOM表格提取')
-      return bom_data
+    try {
+      let bom_data = null
+      
+      // 策略1: 寻找明确的BOM表格
+      try {
+        bom_data = this.extractBOMFromTable(response)
+        if (bom_data && bom_data.items && bom_data.items.length > 0) {
+          console.log('策略1成功: BOM表格提取')
+          return bom_data
+        }
+      } catch (error) {
+        console.log('策略1失败:', error.message)
+      }
+      
+      // 策略2: 从元件清单生成BOM
+      try {
+        if (circuit_data && circuit_data.components && circuit_data.components.length > 0) {
+          bom_data = this.generateBOMFromComponents(circuit_data.components)
+          if (bom_data && bom_data.items && bom_data.items.length > 0) {
+            console.log('策略2成功: 元件清单生成BOM')
+            return bom_data
+          }
+        }
+      } catch (error) {
+        console.log('策略2失败:', error.message)
+      }
+      
+      // 策略3: 智能文本分析提取元件
+      try {
+        bom_data = this.intelligentBOMExtraction(response)
+        if (bom_data && bom_data.items && bom_data.items.length > 0) {
+          console.log('策略3成功: 智能文本分析')
+          return bom_data
+        }
+      } catch (error) {
+        console.log('策略3失败:', error.message)
+      }
+      
+      // 策略4: 最后手段 - 正则模式匹配
+      try {
+        bom_data = this.forceExtractBOM(response)
+        console.log('策略4: 正则匹配，结果:', bom_data?.items?.length || 0)
+        return bom_data
+      } catch (error) {
+        console.log('策略4失败:', error.message)
+        return null
+      }
+    } catch (error) {
+      console.log('BOM提取全部失败:', error.message)
+      return null
     }
-    
-    // 策略2: 从元件清单生成BOM
-    if (circuit_data && circuit_data.components && circuit_data.components.length > 0) {
-      bom_data = this.generateBOMFromComponents(circuit_data.components)
-      console.log('策略2成功: 元件清单生成BOM')
-      return bom_data
-    }
-    
-    // 策略3: 智能文本分析提取元件
-    bom_data = this.intelligentBOMExtraction(response)
-    if (bom_data && bom_data.items.length > 0) {
-      console.log('策略3成功: 智能文本分析')
-      return bom_data
-    }
-    
-    // 策略4: 最后手段 - 正则模式匹配
-    bom_data = this.forceExtractBOM(response)
-    console.log('策略4: 正则匹配，结果:', bom_data?.items?.length || 0)
-    
-    return bom_data
   }
 
   // 在文本中寻找电路结构
