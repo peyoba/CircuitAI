@@ -214,8 +214,8 @@ export class AIService {
 
   private async callGemini(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
     try {
-      const { apiKey, model = 'gemini-pro' } = config
-      
+    const { apiKey, model = 'gemini-pro' } = config
+    
       if (!apiKey) {
         throw new Error('Gemini API Key 未配置')
       }
@@ -230,35 +230,51 @@ export class AIService {
       // 构建Gemini的多轮对话格式
       const contents = []
       
-      // 如果是第一条消息，添加系统提示词
-      if (!conversationHistory || conversationHistory.length <= 1) {
+      // 检查是否是首次对话
+      const isFirstMessage = !conversationHistory || conversationHistory.length === 1 // 只有当前用户消息
+      
+      if (isFirstMessage) {
+        // 首次对话，使用完整的系统提示词
         const systemPrompt = this.buildCircuitDesignPrompt(message)
         contents.push({
           role: 'user',
           parts: [{ text: systemPrompt }]
         })
+        console.log('使用完整系统提示词 - 首次对话')
       } else {
-        // 添加对话历史（最近4轮对话）
-        const recentHistory = conversationHistory.slice(-8) // 4轮对话 = 8条消息
-        for (let i = 0; i < recentHistory.length - 1; i++) { // 排除当前消息
-          const msg = recentHistory[i]
-          if (msg.role === 'user') {
-            contents.push({
-              role: 'user',
-              parts: [{ text: msg.content }]
-            })
-          } else if (msg.role === 'assistant') {
-            contents.push({
-              role: 'model',
-              parts: [{ text: msg.content }]
-            })
+        // 后续对话，包含历史记录
+        console.log('使用对话历史 - 后续对话，历史长度:', conversationHistory.length)
+        
+        // 添加对话历史（最近6轮对话，排除当前消息）
+        const recentHistory = conversationHistory.slice(-13, -1) // 排除最后一条(当前)消息
+        
+        // 如果有历史，先添加一个简化的上下文提示
+        if (recentHistory.length > 0) {
+          contents.push({
+            role: 'user',
+            parts: [{ text: '你是专业的硬件电路设计专家。基于我们之前的对话，请继续为我提供专业的技术支持。' }]
+          })
+          
+          // 添加历史对话
+          for (const msg of recentHistory) {
+            if (msg.role === 'user') {
+              contents.push({
+                role: 'user',
+                parts: [{ text: msg.content }]
+              })
+            } else if (msg.role === 'assistant') {
+              contents.push({
+                role: 'model',
+                parts: [{ text: msg.content }]
+              })
+            }
           }
         }
         
         // 添加当前用户消息
         contents.push({
           role: 'user',
-          parts: [{ text: `基于前面的对话，请回答：${message}` }]
+          parts: [{ text: message }]
         })
       }
       
@@ -296,16 +312,16 @@ export class AIService {
       console.log('Gemini API URL:', apiUrl)
       
       const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
         body: JSON.stringify(requestBody)
       })
 
       console.log('Gemini响应状态:', response.status, response.statusText)
 
-      if (!response.ok) {
+    if (!response.ok) {
         const errorText = await response.text()
         console.error('Gemini API错误响应:', { 
           status: response.status, 
@@ -314,9 +330,9 @@ export class AIService {
           url: apiUrl
         })
         throw new Error(`Gemini API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
-      }
+    }
 
-      const data = await response.json()
+    const data = await response.json()
       console.log('Gemini响应数据结构:', Object.keys(data))
       
       if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
@@ -327,10 +343,10 @@ export class AIService {
       const responseText = data.candidates[0].content.parts[0].text
       console.log('Gemini API调用成功，响应长度:', responseText.length)
       
-      return {
+    return {
         response: responseText,
-        conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        provider: 'gemini'
+      conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      provider: 'gemini'
       }
     } catch (error) {
       console.error('Gemini API调用异常:', error)
@@ -502,48 +518,242 @@ export class AIService {
     }
   }
 
-  // 从AI响应中提取电路数据和BOM数据
+  // 从AI响应中提取电路数据和BOM数据 - 增强版
   private extractDataFromResponse(response: string) {
+    console.log('开始智能提取，响应前500字符:', response.substring(0, 500))
+    
     let circuit_data = null
     let bom_data = null
     
-    // 提取ASCII电路图
-    const codeBlockRegex = /```([\s\S]*?)```/g
-    const codeBlocks = response.match(codeBlockRegex)
+    // 1. 提取ASCII电路图
+    circuit_data = this.extractCircuitData(response)
     
-    if (codeBlocks) {
-      for (const block of codeBlocks) {
-        const cleanBlock = block.replace(/```/g, '').trim()
-        // 简单检测是否是电路图（包含常见电路符号）
-        if (this.isCircuitDiagram(cleanBlock)) {
-          circuit_data = {
-            ascii: cleanBlock,
-            description: this.extractDescription(response),
-            components: this.extractComponents(response), // 从完整响应中提取
-            connections: this.extractConnections(response) // 从完整响应中提取
-          }
-          break
+    // 2. 提取BOM数据 - 四层提取策略
+    bom_data = this.extractBOMData(response, circuit_data)
+    
+    console.log('智能提取完成:', {
+      hasCircuit: !!circuit_data,
+      circuitComponents: circuit_data?.components?.length || 0,
+      hasBOM: !!bom_data,
+      bomItems: bom_data?.items?.length || 0
+    })
+    
+    return { circuit_data, bom_data }
+  }
+
+  // 智能提取电路数据
+  private extractCircuitData(response: string) {
+    // 1. 寻找代码块中的电路图
+    const codeBlockRegex = /```([^`]*?)```/gs
+    const codeBlocks = Array.from(response.matchAll(codeBlockRegex))
+    
+    let ascii = null
+    for (const match of codeBlocks) {
+      const cleanBlock = match[1].trim()
+      if (this.isCircuitDiagram(cleanBlock)) {
+        ascii = cleanBlock
+        break
+      }
+    }
+    
+    // 2. 如果没找到代码块，寻找明显的电路结构
+    if (!ascii) {
+      ascii = this.findCircuitInText(response)
+    }
+    
+    // 3. 提取电路描述、元件和连接
+    const description = this.extractDescription(response)
+    const components = this.extractComponents(response)
+    const connections = this.extractConnections(response)
+    
+    console.log('电路提取结果:', {
+      hasAscii: !!ascii,
+      asciiLength: ascii?.length || 0,
+      description: description?.substring(0, 100) + '...',
+      componentsCount: components.length,
+      connectionsCount: connections.length
+    })
+    
+    if (ascii || components.length > 0) {
+      return {
+        ascii: ascii || '// 电路图提取中...',
+        description: description || '电路设计说明',
+        components,
+        connections
+      }
+    }
+    
+    return null
+  }
+
+  // 智能提取BOM数据
+  private extractBOMData(response: string, circuit_data: any) {
+    let bom_data = null
+    
+    // 策略1: 寻找明确的BOM表格
+    bom_data = this.extractBOMFromTable(response)
+    if (bom_data && bom_data.items.length > 0) {
+      console.log('策略1成功: BOM表格提取')
+      return bom_data
+    }
+    
+    // 策略2: 从元件清单生成BOM
+    if (circuit_data && circuit_data.components && circuit_data.components.length > 0) {
+      bom_data = this.generateBOMFromComponents(circuit_data.components)
+      console.log('策略2成功: 元件清单生成BOM')
+      return bom_data
+    }
+    
+    // 策略3: 智能文本分析提取元件
+    bom_data = this.intelligentBOMExtraction(response)
+    if (bom_data && bom_data.items.length > 0) {
+      console.log('策略3成功: 智能文本分析')
+      return bom_data
+    }
+    
+    // 策略4: 最后手段 - 正则模式匹配
+    bom_data = this.forceExtractBOM(response)
+    console.log('策略4: 正则匹配，结果:', bom_data?.items?.length || 0)
+    
+    return bom_data
+  }
+
+  // 在文本中寻找电路结构
+  private findCircuitInText(response: string): string | null {
+    // 寻找包含电路符号的段落
+    const lines = response.split('\n')
+    let circuitLines = []
+    
+    for (const line of lines) {
+      if (this.isCircuitDiagram(line)) {
+        circuitLines.push(line)
+      }
+    }
+    
+    if (circuitLines.length >= 3) { // 至少3行才算电路图
+      return circuitLines.join('\n')
+    }
+    
+    return null
+  }
+
+  // 从明确的BOM表格中提取
+  private extractBOMFromTable(response: string) {
+    const bomPatterns = [
+      /(?:BOM|物料清单|元件清单)[\s\S]*?\|(.*?\|.*?\|.*?\|)/gi,
+      /\|.*?序号.*?\|.*?名称.*?\|.*?型号.*?\|/gi,
+      /\|.*?编号.*?\|.*?元件.*?\|.*?规格.*?\|/gi
+    ]
+    
+    for (const pattern of bomPatterns) {
+      const matches = Array.from(response.matchAll(pattern))
+      if (matches.length > 0) {
+        return this.parseBOMTable(response, pattern)
+      }
+    }
+    
+    return null
+  }
+
+  // 解析BOM表格
+  private parseBOMTable(response: string, pattern: RegExp) {
+    const items = []
+    const lines = response.split('\n')
+    
+    let inTable = false
+    let itemId = 1
+    
+    for (const line of lines) {
+      // 检测表格开始
+      if (pattern.test(line)) {
+        inTable = true
+        continue
+      }
+      
+      // 解析表格行
+      if (inTable && line.includes('|')) {
+        const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell)
+        
+        if (cells.length >= 3) {
+          // 尝试解析为: 名称/位号 | 型号/规格 | 数量 | [其他]
+          items.push({
+            component: cells[0] || `COMP${itemId}`,
+            model: cells[1] || 'Standard',
+            quantity: this.extractNumber(cells[2]) || 1,
+            value: cells[1] || '',
+            package: cells[3] || 'Standard',
+            price: cells[4] ? this.extractNumber(cells[4]) : this.getComponentPrice('standard'),
+            description: cells.join(' ').substring(0, 50)
+          })
+          itemId++
+        }
+      }
+      
+      // 检测表格结束
+      if (inTable && !line.includes('|') && line.trim() === '') {
+        break
+      }
+    }
+    
+    return items.length > 0 ? { items, totalCost: items.reduce((sum, item) => sum + (item.price * item.quantity), 0) } : null
+  }
+
+  // 智能BOM提取
+  private intelligentBOMExtraction(response: string) {
+    const items = []
+    const componentMatches = new Set() // 避免重复
+    
+    // 增强的元件识别模式
+    const patterns = [
+      // 运算放大器
+      { pattern: /(LM\d+|OPA\d+|AD\d+|TL\d+)(\w*)/gi, type: 'ic', getName: (match) => match[0] },
+      // 电阻
+      { pattern: /(\d+(?:\.\d+)?[kKmM]?[Ω\u03A9Ω])/gi, type: 'resistor', getName: (match) => `R(${match[1]})` },
+      // 电容
+      { pattern: /(\d+(?:\.\d+)?[uUnNpPmM]?F)/gi, type: 'capacitor', getName: (match) => `C(${match[1]})` },
+      // 具体IC型号
+      { pattern: /(STM32\w+|ESP32|555|ATmega\w+)/gi, type: 'mcu', getName: (match) => match[0] },
+      // 二极管
+      { pattern: /(1N\d+|BAT\d+)/gi, type: 'diode', getName: (match) => match[0] },
+      // 晶体管
+      { pattern: /(2N\d+|BC\d+|IRLZ\d+|IRF\d+)/gi, type: 'transistor', getName: (match) => match[0] },
+    ]
+    
+    let itemId = 1
+    for (const { pattern, type, getName } of patterns) {
+      const matches = Array.from(response.matchAll(pattern))
+      
+      for (const match of matches) {
+        const componentName = getName(match)
+        const key = `${type}_${componentName}`
+        
+        if (!componentMatches.has(key)) {
+          componentMatches.add(key)
+          
+          items.push({
+            component: componentName,
+            model: this.getDefaultModel(type),
+            quantity: 1,
+            value: match[1] || componentName,
+            package: this.getDefaultPackage(type),
+            price: this.getComponentPrice(type),
+            description: this.getComponentDescription(type, componentName)
+          })
+          itemId++
         }
       }
     }
     
-    // 提取BOM数据 - 多种方法确保提取成功
-    // 方法1：从BOM表格提取
-    if (response.includes('BOM') || response.includes('物料清单') || response.includes('元件清单')) {
-      bom_data = this.extractBOMFromText(response)
-    }
-    
-    // 方法2：如果没有BOM表格，从组件列表生成
-    if (!bom_data && circuit_data && circuit_data.components) {
-      bom_data = this.generateBOMFromComponents(circuit_data.components)
-    }
-    
-    // 方法3：如果都没有，强制从响应中查找元件并生成
-    if (!bom_data) {
-      bom_data = this.forceExtractBOM(response)
-    }
-    
-    return { circuit_data, bom_data }
+    return items.length > 0 ? { 
+      items, 
+      totalCost: items.reduce((sum, item) => sum + (item.price * item.quantity), 0) 
+    } : null
+  }
+
+  // 提取数字
+  private extractNumber(text: string): number {
+    const match = text.match(/(\d+(?:\.\d+)?)/)
+    return match ? parseFloat(match[1]) : 0
   }
   
   // 判断是否是电路图

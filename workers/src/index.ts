@@ -39,23 +39,43 @@ app.get('/api/health', (c) => {
 // AI聊天接口
 app.post('/api/ai/chat', async (c) => {
   try {
-    const { message, conversation_id, provider, apiConfig } = await c.req.json()
+    console.log('收到AI聊天请求')
+    const requestData = await c.req.json()
+    console.log('请求数据:', { 
+      message: requestData.message?.substring(0, 100) + '...', 
+      provider: requestData.provider,
+      hasApiConfig: !!requestData.apiConfig,
+      conversationId: requestData.conversation_id
+    })
+    
+    const { message, conversation_id, provider, apiConfig } = requestData
+    
+    if (!message || !provider) {
+      throw new Error('缺少必要参数: message 或 provider')
+    }
     
     // 初始化AI服务
+    console.log('初始化AI服务...')
     const aiService = new AIService()
     
     // 处理聊天请求
+    console.log('开始处理聊天请求...')
     const response = await aiService.chat(message, conversation_id, provider, apiConfig)
+    console.log('聊天处理完成，响应类型:', typeof response, '响应键:', Object.keys(response || {}))
     
     return c.json({
       success: true,
       data: response
     })
   } catch (error) {
-    console.error('AI Chat error:', error)
+    console.error('AI Chat error详细信息:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     return c.json({
       success: false,
-      error: 'AI服务暂时不可用，请稍后再试'
+      error: `AI服务错误: ${error.message}`
     }, 500)
   }
 })
