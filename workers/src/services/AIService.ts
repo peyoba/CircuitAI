@@ -284,24 +284,24 @@ export class AIService {
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 8192
+          maxOutputTokens: 4096
         },
         safetySettings: [
           {
             category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            threshold: "BLOCK_NONE"
           },
           {
             category: "HARM_CATEGORY_HATE_SPEECH", 
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            threshold: "BLOCK_NONE"
           },
           {
             category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            threshold: "BLOCK_NONE"
           },
           {
             category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            threshold: "BLOCK_NONE"
           }
         ]
       }
@@ -332,12 +332,57 @@ export class AIService {
         throw new Error(`Gemini API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
     }
 
-    const data = await response.json()
+          const data = await response.json()
       console.log('Gemini响应数据结构:', Object.keys(data))
+      console.log('Gemini完整响应:', JSON.stringify(data, null, 2))
       
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        console.error('Gemini响应格式异常:', data)
-        throw new Error('Gemini API返回数据格式异常')
+      // 详细检查响应结构
+      if (!data.candidates) {
+        console.error('缺少candidates字段:', data)
+        throw new Error('Gemini API返回缺少candidates字段')
+      }
+      
+      if (!Array.isArray(data.candidates) || data.candidates.length === 0) {
+        console.error('candidates不是数组或为空:', data.candidates)
+        throw new Error('Gemini API返回candidates为空')
+      }
+      
+      if (!data.candidates[0]) {
+        console.error('candidates[0]为空:', data.candidates)
+        throw new Error('Gemini API返回candidates[0]为空')
+      }
+      
+      if (!data.candidates[0].content) {
+        console.error('candidates[0].content为空:', data.candidates[0])
+        throw new Error('Gemini API返回content为空')
+      }
+      
+      // 检查是否被安全过滤器阻止
+      if (data.candidates[0].finishReason === 'SAFETY') {
+        console.error('响应被安全过滤器阻止:', data.candidates[0])
+        throw new Error('Gemini API响应被安全过滤器阻止，请调整安全设置或修改问题')
+      }
+      
+      if (!data.candidates[0].content.parts) {
+        console.error('candidates[0].content.parts为空:', data.candidates[0].content)
+        console.error('可能原因: finishReason =', data.candidates[0].finishReason)
+        throw new Error(`Gemini API返回parts为空，原因: ${data.candidates[0].finishReason || '未知'}`)
+      }
+      
+      if (!Array.isArray(data.candidates[0].content.parts) || data.candidates[0].content.parts.length === 0) {
+        console.error('parts不是数组或为空:', data.candidates[0].content.parts)
+        console.error('可能原因: finishReason =', data.candidates[0].finishReason)
+        throw new Error(`Gemini API返回parts数组为空，原因: ${data.candidates[0].finishReason || '未知'}`)
+      }
+      
+      if (!data.candidates[0].content.parts[0]) {
+        console.error('parts[0]为空:', data.candidates[0].content.parts)
+        throw new Error('Gemini API返回parts[0]为空')
+      }
+      
+      if (!data.candidates[0].content.parts[0].text) {
+        console.error('parts[0].text为空:', data.candidates[0].content.parts[0])
+        throw new Error('Gemini API返回text为空')
       }
       
       const responseText = data.candidates[0].content.parts[0].text
@@ -1117,31 +1162,17 @@ export class AIService {
     return null
   }
   
-  // 构建专业而结构化的电路设计提示词
+  // 构建精简的电路设计提示词
   private buildCircuitDesignPrompt(userMessage: string): string {
-    return `你是世界顶尖的硬件电路设计专家，具有20年的工程经验，专精于所有电子工程领域。请以最高专业水准回答用户问题。
+    return `你是硬件电路设计专家。请专业回答：${userMessage}
 
-## 专业要求：
-- 深度的理论分析和数学推导
-- 具体的元件选型和性能计算  
-- 详细的实现指南和调试方法
-- 全面的工程考虑（性能、成本、制造）
+要求：
+- 提供电路原理和计算
+- 推荐具体元件型号  
+- 包含ASCII电路图
+- 给出实现指南
 
-## 回答风格：
-像参考案例那样专业、深入、有条理。使用准确的技术术语，提供完整的计算过程，给出具体的元件型号。
-
-用户问题：${userMessage}
-
----
-
-请提供专业的技术分析。如果涉及电路设计，请在回答中包含：
-
-1. **电路原理图**（使用ASCII字符绘制，清晰标注元件值和连接）
-2. **关键元件**（具体型号、参数、选型依据）  
-3. **性能计算**（公式推导、数值计算、误差分析）
-4. **实现指南**（PCB布局、调试方法、注意事项）
-
-如果有元件清单，请列出具体的元件型号、规格、价格等信息。`
+请深入分析并提供完整的技术方案。`
   }
 
   // 构建包含历史的提示词
