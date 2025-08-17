@@ -76,19 +76,6 @@
         <priority>0.3</priority>
     </url>
     
-    <!-- Cloudflare Pages 备用域名 -->
-    <url>
-        <loc>https://circuitai.pages.dev/</loc>
-        <lastmod>2025-08-17</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    
-    <url>
-        <loc>https://circuitai.pages.dev/design</loc>
-        <lastmod>2025-08-17</lastmod>
-        <changefreq>daily</changefreq>
-        <priority>0.8</priority>
-    </url>
+
     
 </urlset>
