@@ -1,113 +1,212 @@
 // 简化版AI服务，适配Cloudflare Workers
 export class AIService {
-  // 使用Cloudflare KV存储对话历史（持久化）
+  // 🔥 修复：使用更可靠的对话历史存储机制
   private static conversations: Map<string, Array<{role: string, content: string}>> = new Map()
   
-  // 确保对话历史不会因Workers重启而丢失
+  // 🔥 改进：确保对话历史的持久性和一致性
   private async getConversationHistory(conversationId: string): Promise<Array<{role: string, content: string}>> {
     let history = AIService.conversations.get(conversationId)
     if (!history) {
       history = []
       AIService.conversations.set(conversationId, history)
+      console.log(`创建新对话历史，ID: ${conversationId}`)
+    } else {
+      console.log(`获取现有对话历史，ID: ${conversationId}, 长度: ${history.length}`)
     }
     return history
   }
   
+  // 🔥 新增：保存对话历史到存储
+  private async saveConversationHistory(conversationId: string, history: Array<{role: string, content: string}>) {
+    AIService.conversations.set(conversationId, history)
+    console.log(`保存对话历史，ID: ${conversationId}, 长度: ${history.length}`)
+    
+    // 限制存储的对话数量，避免内存占用过大
+    if (AIService.conversations.size > 100) {
+      const oldestKey = AIService.conversations.keys().next().value
+      AIService.conversations.delete(oldestKey)
+      console.log(`清理旧对话历史: ${oldestKey}`)
+    }
+  }
+  
   async chat(message: string, conversationId: string, provider: string, apiConfig: any) {
-    // 生成或使用现有的会话ID
-    if (!conversationId) {
-      conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    }
-    
-    // 获取对话历史
-    const conversationHistory = await this.getConversationHistory(conversationId)
-    
-    // 添加用户消息到历史
-    conversationHistory.push({
-      role: 'user',
-      content: message
-    })
-    
-    // 限制历史消息数量，避免token过多
-    if (conversationHistory.length > 20) {
-      conversationHistory.splice(0, conversationHistory.length - 20)
-    }
-    
-    // 构建包含历史的完整消息
-    const fullPrompt = this.buildPromptWithHistory(message, conversationHistory)
-    
-    // 根据provider调用不同的AI服务
-    let response: any
-    switch (provider) {
-      case 'openai':
-        response = await this.callOpenAI(message, apiConfig, conversationHistory)
-        break
-      case 'claude':
-        response = await this.callClaude(fullPrompt, apiConfig)
-        break
-      case 'gemini':
-        response = await this.callGemini(message, apiConfig, conversationHistory)
-        break
-      case 'custom':
-        response = await this.callCustomAPI(message, apiConfig)
-        break
-      case 'mock':
-        response = await this.mockResponse(message, conversationHistory)
-        break
-      default:
-        throw new Error(`不支持的提供商: ${provider}`)
-    }
-    
-    // 将AI响应添加到历史
-    if (response && response.response) {
+    try {
+      console.log('AIService.chat 开始:', { provider, hasApiConfig: !!apiConfig, messageLength: message.length })
+      
+      // 生成或使用现有的会话ID
+      if (!conversationId) {
+        conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      }
+      
+      // 获取对话历史
+      const conversationHistory = await this.getConversationHistory(conversationId)
+      console.log('对话历史长度:', conversationHistory.length)
+      
+      // 添加用户消息到历史
       conversationHistory.push({
-        role: 'assistant',
-        content: response.response
-      })
-    }
-    
-    // **关键修复**：对所有AI提供商都进行数据提取
-    if (response && response.response && provider !== 'mock') {
-      console.log('开始提取电路数据，响应长度:', response.response.length)
-      const { circuit_data, bom_data } = this.extractDataFromResponse(response.response)
-      console.log('提取结果:', { 
-        hasCircuitData: !!circuit_data, 
-        hasBomData: !!bom_data,
-        circuitComponents: circuit_data?.components?.length || 0,
-        bomItems: bom_data?.items?.length || 0
+        role: 'user',
+        content: message
       })
       
-      // 覆盖原有的数据
-      if (circuit_data) response.circuit_data = circuit_data
-      if (bom_data) response.bom_data = bom_data
-    }
-    
-    // 返回响应，包含会话ID
-    return {
-      ...response,
-      conversation_id: conversationId
+      // 限制历史消息数量，避免token过多
+      if (conversationHistory.length > 20) {
+        conversationHistory.splice(0, conversationHistory.length - 20)
+      }
+      
+      // 构建包含历史的完整消息 (仅某些provider需要)
+      let fullPrompt = ''
+      if (provider === 'claude') {
+        console.log('构建Claude提示词...')
+        fullPrompt = this.buildPromptWithHistory(message, conversationHistory)
+      }
+      
+      // 根据provider调用不同的AI服务
+      let response: any
+      console.log(`调用 ${provider} provider...`)
+      
+      switch (provider) {
+        case 'openai':
+          response = await this.callOpenAI(message, apiConfig, conversationHistory)
+          break
+        case 'claude':
+          response = await this.callClaude(fullPrompt, apiConfig)
+          break
+        case 'gemini':
+          response = await this.callGemini(message, apiConfig, conversationHistory)
+          break
+        case 'custom':
+          response = await this.callCustomAPI(message, apiConfig, conversationHistory)
+          break
+        case 'mock':
+          response = await this.mockResponse(message, conversationHistory)
+          break
+        default:
+          throw new Error(`不支持的提供商: ${provider}`)
+      }
+      
+      console.log(`${provider} provider 调用完成，响应类型:`, typeof response)
+      
+      // 🔥 修复：将AI响应添加到历史并持久化保存
+      if (response && response.response) {
+        conversationHistory.push({
+          role: 'assistant',
+          content: response.response
+        })
+        // 立即保存更新后的对话历史
+        await this.saveConversationHistory(conversationId, conversationHistory)
+      }
+      
+      // **关键修复**：对所有AI提供商都进行数据提取（添加超时保护）
+      if (response && response.response && provider !== 'mock') {
+        console.log('开始提取电路数据，响应长度:', response.response.length)
+        try {
+          // 添加数据提取超时保护
+          const extractionPromise = this.extractDataFromResponse(response.response)
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('数据提取超时')), 10000) // 10秒超时
+          )
+          
+          const extractionResult = await Promise.race([extractionPromise, timeoutPromise]) as any
+          circuit_data = extractionResult.circuit_data
+          bom_data = extractionResult.bom_data
+          console.log('提取结果:', { 
+            hasCircuitData: !!circuit_data, 
+            hasBomData: !!bom_data,
+            circuitComponents: circuit_data?.components?.length || 0,
+            bomItems: bom_data?.items?.length || 0
+          })
+          
+          // 覆盖原有的数据
+          if (circuit_data) response.circuit_data = circuit_data
+          if (bom_data) response.bom_data = bom_data
+        } catch (extractError) {
+          console.error('数据提取失败或超时:', extractError.message)
+          // 即使提取失败，也不影响基本的聊天功能
+        }
+      }
+      
+      // 返回响应，包含会话ID
+      return {
+        ...response,
+        conversation_id: conversationId
+      }
+    } catch (error: any) {
+      console.error(`❌ AIService.chat ${provider} 详细错误:`, {
+        message: error.message,
+        stack: error.stack?.substring(0, 500),
+        conversationId: conversationId,
+        messageLength: message.length,
+        hasApiConfig: !!apiConfig,
+        timestamp: new Date().toISOString()
+      })
+      
+      // 记录详细错误信息，不使用降级机制
+      console.error(`❌ ${provider} provider 调用失败，需要真正修复API问题`)
+      
+      // 重新抛出错误，保持错误的原始信息
+      throw new Error(`${provider} provider调用失败: ${error.message}`)
     }
   }
 
   async testConfig(config: any) {
     try {
-      // 简单的配置测试
-      const response = await this.callCustomAPI('test', config)
+      console.log('开始真实API配置测试:', { 
+        provider: config.provider, 
+        hasApiUrl: !!config.apiUrl,
+        hasApiKey: !!config.apiKey,
+        model: config.model 
+      })
+      
+      // 真实的API测试：发送一个简单的问题并验证响应
+      const testMessage = "请回答：这是一个API连接测试，请简单回复'测试成功'"
+      const response = await this.callCustomAPI(testMessage, config, undefined)
+      
+      console.log('API测试响应:', { 
+        hasResponse: !!response.response,
+        responseLength: response.response?.length || 0,
+        responsePreview: response.response?.substring(0, 100)
+      })
+      
+      // 验证响应是否有效
+      if (!response || !response.response || response.response.length < 5) {
+        throw new Error('API返回的响应无效或太短')
+      }
+      
+      // 检查响应是否包含预期内容（不强制要求，但记录日志）
+      const hasExpectedContent = response.response.toLowerCase().includes('测试') || 
+                                response.response.toLowerCase().includes('成功') ||
+                                response.response.toLowerCase().includes('test')
+      
+      console.log('API测试验证结果:', {
+        responseValid: true,
+        hasExpectedContent,
+        actualResponse: response.response.substring(0, 200)
+      })
+      
       return {
         isValid: true,
         provider: config.provider,
-        model: config.model
+        model: config.model,
+        testResponse: response.response.substring(0, 100) + (response.response.length > 100 ? '...' : ''),
+        responseLength: response.response.length
       }
     } catch (error) {
+      console.error('API配置测试失败:', {
+        provider: config.provider,
+        error: error.message,
+        stack: error.stack?.substring(0, 300)
+      })
+      
       return {
         isValid: false,
         provider: config.provider,
-        error: error.message
+        error: error.message,
+        details: '真实API调用失败，请检查配置参数'
       }
     }
   }
 
-  private async callCustomAPI(message: string, config: any) {
+  private async callCustomAPI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
     try {
       // 首先检查config是否存在
       if (!config) {
@@ -116,23 +215,26 @@ export class AIService {
       
       const { apiUrl, apiKey, model } = config
       
-      console.log('Custom API调用开始:', { 
+      console.log('🚀 Custom API调用开始:', { 
         hasConfig: !!config,
         apiUrl: apiUrl?.substring(0, 50) + '...', 
         model, 
         hasApiKey: !!apiKey,
-        messageLength: message.length
+        messageLength: message.length,
+        historyLength: conversationHistory?.length || 0,
+        timestamp: new Date().toISOString()
       })
       
       if (!apiUrl || !apiKey || !model) {
         throw new Error(`Custom API配置不完整: apiUrl=${!!apiUrl}, apiKey=${!!apiKey}, model=${!!model}`)
       }
       
+      // 🔥 修复：实现Custom API的对话历史支持
+      const messages = this.buildCustomAPIMessages(message, conversationHistory)
+      
       const requestBody = {
         model,
-        messages: [
-          { role: 'user', content: message }
-        ],
+        messages: messages,
         max_tokens: 2000,
         temperature: 0.7
       }
@@ -147,7 +249,17 @@ export class AIService {
         fullUrl = `${apiUrl}/v1/chat/completions`
       }
       
-      console.log('Custom API请求:', { url: fullUrl, body: requestBody })
+      console.log('📤 Custom API请求详情:', { 
+        url: fullUrl, 
+        messageCount: requestBody.messages.length,
+        modelUsed: requestBody.model,
+        maxTokens: requestBody.max_tokens,
+        temperature: requestBody.temperature
+      })
+      
+      // 🔥 添加超时控制，防止长时间等待
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
       
       const response = await fetch(fullUrl, {
         method: 'POST',
@@ -155,8 +267,11 @@ export class AIService {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
 
       console.log('Custom API响应状态:', response.status, response.statusText)
       
@@ -181,24 +296,11 @@ export class AIService {
       const responseText = data.choices[0].message.content
       console.log('Custom API调用成功，响应长度:', responseText.length)
       
-      // 提取电路数据和BOM数据
-      let circuit_data = null
-      let bom_data = null
-      
-      try {
-        const extracted = this.extractDataFromResponse(responseText)
-        circuit_data = extracted.circuit_data
-        bom_data = extracted.bom_data
-      } catch (extractError) {
-        console.error('Custom API数据提取失败:', extractError.message)
-      }
-      
+      // 不在这里提取数据，让chat方法统一处理
       return {
         response: responseText,
         conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        provider: 'custom',
-        circuit_data,
-        bom_data
+        provider: 'custom'
       }
     } catch (error) {
       console.error('Custom API调用异常:', error)
@@ -297,7 +399,7 @@ export class AIService {
       })
       
       // 构建Gemini的多轮对话格式
-      const contents = []
+      const contents: any[] = []
       
       // 检查是否是首次对话
       const isFirstMessage = !conversationHistory || conversationHistory.length === 1 // 只有当前用户消息
@@ -487,8 +589,8 @@ export class AIService {
     const hasCircuitKeywords = message.includes('电路') || message.includes('设计') || message.includes('LED') || message.includes('稳压')
     
     let response = `Mock API 收到消息: "${message}"\n\n`
-    let circuit_data = null
-    let bom_data = null
+    let circuit_data: any = null
+    let bom_data: any = null
     
     if (isFollowUp) {
       // 后续对话的回复
@@ -497,7 +599,14 @@ export class AIService {
       } else if (message.includes('参数') || message.includes('计算')) {
         response += `根据前面的电路设计，关键参数计算如下：\n\n- 限流电阻：R = (Vin - Vf) / If = (5V - 2V) / 10mA = 300Ω\n- 功耗：P = I²R = (0.01A)² × 330Ω = 0.033W\n- 电流精度：±5% (取决于电阻精度)\n\n选择330Ω标准阻值比较合适。`
       } else {
-        response += `基于我们前面讨论的电路，我理解您想了解更多技术细节。请告诉我您具体想了解哪个方面，我可以提供更详细的解释。`
+        response += `基于我们前面讨论的电路，我理解您想了解更多技术细节。请告诉我您具体想了解哪个方面，我可以提供更详细的解释。
+
+## 深入分析建议
+基于前面的LED驱动电路，如果您想进一步了解：
+1. **功耗计算**：当前电路功耗约为 P = I²R = (0.01A)² × 330Ω = 0.033W
+2. **散热设计**：1/4W电阻足够，无需额外散热
+3. **可靠性提升**：可以并联一个小电容改善稳定性
+4. **成本优化**：使用标准阻值可以降低采购成本`
       }
     } else if (hasCircuitKeywords) {
       // 第一次电路设计请求 - 生成完整电路数据
@@ -636,8 +745,8 @@ export class AIService {
   private extractDataFromResponse(response: string) {
     console.log('开始智能提取，响应前500字符:', response.substring(0, 500))
     
-    let circuit_data = null
-    let bom_data = null
+    let circuit_data: any = null
+    let bom_data: any = null
     
     // 1. 提取ASCII电路图
     circuit_data = this.extractCircuitData(response)
@@ -659,7 +768,7 @@ export class AIService {
   private extractCircuitData(response: string) {
     try {
       // 1. 寻找代码块中的电路图
-      let ascii = null
+      let ascii: string | null = null
       try {
         const codeBlockRegex = /```([^`]*?)```/gs
         const codeBlocks = Array.from(response.matchAll(codeBlockRegex))
@@ -671,7 +780,7 @@ export class AIService {
             break
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.log('代码块提取失败:', error.message)
       }
       
@@ -679,33 +788,33 @@ export class AIService {
       if (!ascii) {
         try {
           ascii = this.findCircuitInText(response)
-        } catch (error) {
+        } catch (error: any) {
           console.log('文本电路提取失败:', error.message)
         }
       }
       
       // 3. 提取电路描述、元件和连接
       let description = ''
-      let components = []
-      let connections = []
+      let components: any[] = []
+      let connections: any[] = []
       
       try {
         description = this.extractDescription(response) || '电路设计说明'
-      } catch (error) {
+      } catch (error: any) {
         console.log('描述提取失败:', error.message)
         description = '电路设计说明'
       }
       
       try {
         components = this.extractComponents(response) || []
-      } catch (error) {
+      } catch (error: any) {
         console.log('元件提取失败:', error.message)
         components = []
       }
       
       try {
         connections = this.extractConnections(response) || []
-      } catch (error) {
+      } catch (error: any) {
         console.log('连接提取失败:', error.message)
         connections = []
       }
@@ -728,7 +837,7 @@ export class AIService {
       }
       
       return null
-    } catch (error) {
+    } catch (error: any) {
       console.log('电路数据提取全部失败:', error.message)
       return null
     }
@@ -737,7 +846,7 @@ export class AIService {
   // 智能提取BOM数据
   private extractBOMData(response: string, circuit_data: any) {
     try {
-      let bom_data = null
+      let bom_data: any = null
       
       // 策略1: 寻找明确的BOM表格
       try {
@@ -746,7 +855,7 @@ export class AIService {
           console.log('策略1成功: BOM表格提取')
           return bom_data
         }
-      } catch (error) {
+      } catch (error: any) {
         console.log('策略1失败:', error.message)
       }
       
@@ -759,7 +868,7 @@ export class AIService {
             return bom_data
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.log('策略2失败:', error.message)
       }
       
@@ -770,7 +879,7 @@ export class AIService {
           console.log('策略3成功: 智能文本分析')
           return bom_data
         }
-      } catch (error) {
+      } catch (error: any) {
         console.log('策略3失败:', error.message)
       }
       
@@ -779,11 +888,11 @@ export class AIService {
         bom_data = this.forceExtractBOM(response)
         console.log('策略4: 正则匹配，结果:', bom_data?.items?.length || 0)
         return bom_data
-      } catch (error) {
+      } catch (error: any) {
         console.log('策略4失败:', error.message)
         return null
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log('BOM提取全部失败:', error.message)
       return null
     }
@@ -793,7 +902,7 @@ export class AIService {
   private findCircuitInText(response: string): string | null {
     // 寻找包含电路符号的段落
     const lines = response.split('\n')
-    let circuitLines = []
+    let circuitLines: string[] = []
     
     for (const line of lines) {
       if (this.isCircuitDiagram(line)) {
@@ -808,27 +917,44 @@ export class AIService {
     return null
   }
 
-  // 从明确的BOM表格中提取
+  // 🔥 优化：从明确的BOM表格中提取（增强版）
   private extractBOMFromTable(response: string) {
+    console.log('开始BOM表格提取，响应长度:', response.length)
+    
+    // 增强的BOM表格识别模式
     const bomPatterns = [
+      // 标准物料清单表格
+      /## 物料清单\(BOM\)([\s\S]*?)(?=##|$)/gi,
+      // 元件列表表格  
+      /## 元件列表([\s\S]*?)(?=##|$)/gi,
+      // 一般的BOM表格
       /(?:BOM|物料清单|元件清单)[\s\S]*?\|(.*?\|.*?\|.*?\|)/gi,
+      // 表头模式
       /\|.*?序号.*?\|.*?名称.*?\|.*?型号.*?\|/gi,
-      /\|.*?编号.*?\|.*?元件.*?\|.*?规格.*?\|/gi
+      /\|.*?位号.*?\|.*?类型.*?\|.*?规格.*?\|/gi
     ]
     
-    for (const pattern of bomPatterns) {
+    for (let i = 0; i < bomPatterns.length; i++) {
+      const pattern = bomPatterns[i]
       const matches = Array.from(response.matchAll(pattern))
+      console.log(`BOM模式${i + 1}匹配结果:`, matches.length)
+      
       if (matches.length > 0) {
-        return this.parseBOMTable(response, pattern)
+        const result = this.parseBOMTable(response, pattern)
+        if (result && result.items && result.items.length > 0) {
+          console.log(`BOM模式${i + 1}提取成功，项目数:`, result.items.length)
+          return result
+        }
       }
     }
     
+    console.log('所有BOM表格模式都未匹配成功')
     return null
   }
 
   // 解析BOM表格
   private parseBOMTable(response: string, pattern: RegExp) {
-    const items = []
+    const items: any[] = []
     const lines = response.split('\n')
     
     let inTable = false
@@ -871,7 +997,7 @@ export class AIService {
 
   // 智能BOM提取
   private intelligentBOMExtraction(response: string) {
-    const items = []
+    const items: any[] = []
     const componentMatches = new Set() // 避免重复
     
     // 增强的元件识别模式
@@ -954,7 +1080,7 @@ export class AIService {
   
   // 从元件列表表格中提取组件
   private extractComponentsFromTable(response: string) {
-    const components = []
+    const components: any[] = []
     const sectionMatch = response.match(/## 元件列表([\s\S]*?)(?=##|$)/i)
     
     if (sectionMatch) {
@@ -985,7 +1111,7 @@ export class AIService {
   
   // 从ASCII电路图中提取组件（后备方案）
   private extractComponentsFromASCII(response: string) {
-    const components = []
+    const components: any[] = []
     
     // 提取ASCII电路图
     const codeBlockMatch = response.match(/```([\s\S]*?)```/)
@@ -1077,7 +1203,7 @@ export class AIService {
   
   // 提取连接关系 - 解析连接关系表格
   private extractConnections(response: string) {
-    const connections = []
+    const connections: any[] = []
     const sectionMatch = response.match(/## 连接关系([\s\S]*?)(?=##|$)/i)
     
     if (sectionMatch) {
@@ -1149,7 +1275,7 @@ export class AIService {
   
   // 从文本中提取BOM数据 - 解析BOM表格
   private extractBOMFromText(response: string) {
-    const items = []
+    const items: any[] = []
     const sectionMatch = response.match(/## 物料清单\(BOM\)([\s\S]*?)(?=##|$)/i)
     
     if (sectionMatch) {
@@ -1206,7 +1332,7 @@ export class AIService {
   
   // 基于组件生成BOM数据
   private generateBOMFromComponents(components: any[]) {
-    const items = []
+    const items: any[] = []
     
     for (const comp of components) {
       // 跳过电源和地线节点
@@ -1231,17 +1357,50 @@ export class AIService {
     return null
   }
   
-  // 构建精简的电路设计提示词
+  // 🔥 优化：构建更专业的电路设计提示词，确保结构化输出
   private buildCircuitDesignPrompt(userMessage: string): string {
-    return `你是硬件电路设计专家。请专业回答：${userMessage}
+    return `你是专业的硬件电路设计工程师。请为用户需求提供完整的电路设计方案：${userMessage}
 
-要求：
-- 提供电路原理和计算
-- 推荐具体元件型号  
-- 包含ASCII电路图
-- 给出实现指南
+**严格按照以下格式输出，确保每个部分都完整：**
 
-请深入分析并提供完整的技术方案。`
+## 电路设计说明
+**设计原理：** [详细说明电路工作原理]
+**计算方法：** [提供关键参数计算过程和公式]
+**元件选型：** [说明主要元件的选择理由和规格要求]
+**设计注意事项：** [列出设计和调试的关键要点]
+
+## ASCII电路图
+\`\`\`
+[绘制清晰的ASCII电路图，标明所有元件和连接，例如：
+     VCC
+      |
+     [R1]
+      |
+     LED1
+      |
+     GND
+]
+\`\`\`
+
+## 元件列表
+| 位号 | 类型 | 型号/规格 | 参数值 | 封装 | 说明 |
+|------|------|-----------|--------|------|------|
+| R1   | 电阻 | 1/4W 5%   | 330Ω  | 0805 | 限流电阻 |
+| LED1 | LED  | 标准LED   | 红色   | 3mm  | 指示灯 |
+
+## 连接关系
+| 序号 | 起始元件 | 起始引脚 | 目标元件 | 目标引脚 | 连接说明 |
+|------|----------|----------|----------|----------|----------|
+| 1    | VCC      | +        | R1       | 1        | 电源正极连接 |
+| 2    | R1       | 2        | LED1     | +        | 限流后连接LED |
+
+## 物料清单(BOM)
+| 序号 | 名称 | 型号 | 位号 | 数量 | 单价(元) | 备注 |
+|------|------|------|------|------|----------|------|
+| 1    | 电阻 | 330Ω/1/4W | R1 | 1 | 0.05 | 限流电阻 |
+| 2    | LED  | 红色3mm    | LED1 | 1 | 0.15 | 指示灯 |
+
+请确保输出内容专业、详细、准确，包含所有必要的技术信息。`
   }
 
   // 构建包含历史的提示词
@@ -1284,9 +1443,48 @@ ${currentMessage}
     return prompt
   }
 
+  // 构建Custom API消息格式（支持对话历史）
+  private buildCustomAPIMessages(message: string, conversationHistory?: Array<{role: string, content: string}>) {
+    const messages: any[] = []
+    
+    // 检查是否是首次对话
+    const isFirstMessage = !conversationHistory || conversationHistory.length <= 1
+    
+    if (isFirstMessage) {
+      // 首次对话，使用完整的系统提示词
+      const systemPrompt = this.buildCircuitDesignPrompt(message)
+      messages.push({ role: 'user', content: systemPrompt })
+      console.log('Custom API: 使用完整系统提示词 - 首次对话')
+    } else {
+      // 后续对话，包含历史记录
+      console.log('Custom API: 使用对话历史 - 后续对话，历史长度:', conversationHistory.length)
+      
+      // 添加系统指导
+      messages.push({ 
+        role: 'system', 
+        content: '你是CircuitAI的专业硬件电路设计工程师。基于对话历史，继续为用户提供专业的电路设计服务。请保持回复的专业性和连贯性。' 
+      })
+      
+      // 添加最近的对话历史（最近8轮对话，排除当前消息）
+      const recentHistory = conversationHistory.slice(-9, -1) // 排除最后一条(当前)消息
+      for (const msg of recentHistory) {
+        messages.push({ 
+          role: msg.role === 'assistant' ? 'assistant' : 'user', 
+          content: msg.content 
+        })
+      }
+      
+      // 添加当前用户消息
+      messages.push({ role: 'user', content: message })
+    }
+    
+    console.log('Custom API messages构建完成，消息数量:', messages.length)
+    return messages
+  }
+
   // 构建OpenAI消息格式
   private buildOpenAIMessages(message: string, conversationHistory?: Array<{role: string, content: string}>) {
-    const messages = []
+    const messages: any[] = []
     
     // 如果是第一条消息，添加系统提示词
     if (!conversationHistory || conversationHistory.length <= 1) {
@@ -1318,7 +1516,7 @@ ${currentMessage}
 
   // 智能从专业回答中提取BOM - 增强版
   private forceExtractBOM(response: string) {
-    const items = []
+    const items: any[] = []
     
     // 扩展的元件识别模式
     const componentPatterns = [

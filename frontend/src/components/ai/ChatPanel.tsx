@@ -5,6 +5,7 @@ import { ChatMessage } from '../../../../shared/src/types/index'
 import { aiAPI } from '../../services/api'
 import EnhancedAPISettings from '../settings/EnhancedAPISettings'
 import StatusIndicator from '../common/StatusIndicator'
+import RequirementCardSidebar, { Requirements } from './RequirementCardSidebar'
 
 const { TextArea } = Input
 const { Option } = Select
@@ -95,7 +96,21 @@ const ChatPanel = ({
   } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
-  const conversationId = useRef<string>()
+  const conversationId = useRef<string>(`conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+
+  const [sidebarVisible, setSidebarVisible] = useState(false)
+  const [requirements, setRequirements] = useState<Requirements>({
+    type: '',
+    inputPower: '',
+    outputTarget: '',
+    load: '',
+    priorities: [],
+    environment: '',
+    preferences: '',
+    acceptanceCriteria: ''
+  })
+  const [risks, setRisks] = useState<string[]>([])
+  const [changes, setChanges] = useState<string[]>([])
 
   const availableProviders = [
     { value: 'openai', label: 'OpenAI GPT', icon: '🤖' },
@@ -111,6 +126,18 @@ const ChatPanel = ({
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  useEffect(() => {
+    // 加载持久化的需求卡片/风险/变更
+    try {
+      const savedReq = localStorage.getItem('circuitsai_requirements')
+      const savedRisks = localStorage.getItem('circuitsai_requirements_risks')
+      const savedChanges = localStorage.getItem('circuitsai_requirements_changes')
+      if (savedReq) setRequirements(JSON.parse(savedReq))
+      if (savedRisks) setRisks(JSON.parse(savedRisks))
+      if (savedChanges) setChanges(JSON.parse(savedChanges))
+    } catch {}
+  }, [])
 
   useEffect(() => {
     // 检查是否已配置API
@@ -142,6 +169,140 @@ const ChatPanel = ({
     }
   }, [messages, onChatHistory])
 
+  // 持久化需求卡片/风险/变更
+  useEffect(() => {
+    try { localStorage.setItem('circuitsai_requirements', JSON.stringify(requirements)) } catch {}
+  }, [requirements])
+  useEffect(() => {
+    try { localStorage.setItem('circuitsai_requirements_risks', JSON.stringify(risks)) } catch {}
+  }, [risks])
+  useEffect(() => {
+    try { localStorage.setItem('circuitsai_requirements_changes', JSON.stringify(changes)) } catch {}
+  }, [changes])
+
+  const extractFromText = (text: string) => {
+    const lower = text.toLowerCase()
+    const result: Partial<Requirements> = {}
+
+    // 类型
+    if (/稳压|恒压/.test(text)) result.type = '电源稳压'
+    else if (/led/.test(lower) || /发光|灯/.test(text)) result.type = 'LED驱动'
+    else if (/放大|运放/.test(text)) result.type = '放大器'
+    else if (/音频|功放/.test(text)) result.type = '音频功放'
+
+    // 输入电源
+    const inputMatch = text.match(/(输入|供电|电源|VCC)[^\d]{0,6}(\d+(?:\.\d+)?\s*(?:V|伏))/i)
+    const anyV = text.match(/(\d+(?:\.\d+)?\s*(?:V|伏))(?:\s*-\s*(\d+(?:\.\d+)?\s*(?:V|伏)))?/i)
+    if (inputMatch) result.inputPower = inputMatch[2]
+    else if (anyV) result.inputPower = anyV[0]
+
+    // 目标输出
+    const cc = text.match(/恒流\s*(\d+(?:\.\d+)?\s*mA)/i)
+    const cv = text.match(/恒压\s*(\d+(?:\.\d+)?\s*V)/i)
+    const gain = text.match(/增益\s*(\d+(?:\.\d+)?\s*dB)/i)
+    if (cc) result.outputTarget = `恒流 ${cc[1]}`
+    else if (cv) result.outputTarget = `恒压 ${cv[1]}`
+    else if (gain) result.outputTarget = `增益 ${gain[1]}`
+
+    // 负载
+    if (/LED\s*\d*/i.test(text) || /发光二极管|指示灯/.test(text)) result.load = 'LED'
+    else if (/扬声器|喇叭|8Ω|8 Ohm/i.test(text)) result.load = '扬声器/8Ω'
+    else if (/电机|马达/.test(text)) result.load = '电机'
+    else if (/传感器/.test(text)) result.load = '传感器'
+
+    // 优先级
+    const prios: string[] = []
+    if (/成本/.test(text)) prios.push('成本')
+    if (/体积/.test(text)) prios.push('体积')
+    if (/效率/.test(text)) prios.push('效率')
+    if (/噪声/.test(text)) prios.push('噪声')
+    if (/精度/.test(text)) prios.push('精度')
+    if (prios.length) result.priorities = Array.from(new Set(prios))
+
+    // 验收标准（抓取“验收标准”小节或典型约束）
+    const accSection = text.match(/##\s*验收标准([\s\S]*?)(?=##|$)/i)
+    if (accSection) {
+      result.acceptanceCriteria = accSection[1].trim().slice(0, 300)
+    } else {
+      const parts: string[] = []
+      const eff = text.match(/效率\s*[≥>=]\s*([\d.]+%)/)
+      const ripple = text.match(/纹波\s*[≤<=]\s*([\d.]+\s*(?:mV|V))/)
+      const cost = text.match(/成本\s*[≤<=]\s*([\d.]+\s*元?)/)
+      if (eff) parts.push(`效率≥${eff[1]}`)
+      if (ripple) parts.push(`纹波≤${ripple[1]}`)
+      if (cost) parts.push(`成本≤${cost[1]}`)
+      if (parts.length) result.acceptanceCriteria = parts.join('，')
+    }
+
+    return result
+  }
+
+  const autoExtractRequirementsFromConversation = () => {
+    const lastUserMessages = messages.filter(m => m.role === 'user').slice(-5)
+    if (lastUserMessages.length === 0) return
+    const merged = lastUserMessages.map(m => m.content).join('\n')
+    const extracted = extractFromText(merged)
+    setRequirements(prev => ({
+      ...prev,
+      ...extracted,
+    }))
+  }
+
+  const updateRequirementsFromAssistant = (assistantText: string) => {
+    const extracted = extractFromText(assistantText)
+    const next: Requirements = { ...requirements }
+    const changesList: string[] = []
+
+    ;(['type','inputPower','outputTarget','load','acceptanceCriteria'] as const).forEach((key) => {
+      const newVal = (extracted as any)[key]
+      if (newVal && (next as any)[key] !== newVal) {
+        const oldVal = (next as any)[key] || '未设置'
+        changesList.push(`${key}: ${oldVal} -> ${newVal}`)
+        ;(next as any)[key] = newVal
+      }
+    })
+
+    if (extracted.priorities && extracted.priorities.length) {
+      const merged = Array.from(new Set([...(next.priorities || []), ...extracted.priorities]))
+      if (merged.length !== (next.priorities || []).length) {
+        changesList.push(`priorities -> ${merged.join('、')}`)
+      }
+      next.priorities = merged
+    }
+
+    if (changesList.length) {
+      setRequirements(next)
+      setChanges(prev => [...prev, ...changesList])
+    }
+
+    // 简单风险评估占位
+    const newRisks: string[] = []
+    if (!next.inputPower) newRisks.push('输入电源未明确，可能影响器件耐压与效率选型')
+    if (!next.outputTarget) newRisks.push('输出目标未明确，无法进行参数计算与校核')
+    if (!next.load) newRisks.push('负载特性未明确，驱动/功率预算存在不确定性')
+    if (!next.priorities || next.priorities.length === 0) newRisks.push('未设置优先级，难以在方案间做取舍')
+    setRisks(newRisks)
+  }
+
+  const handleRequirementsChange = (next: Requirements) => {
+    // 记录变更
+    const diffs: string[] = []
+    const prev = requirements
+    ;(['type','inputPower','outputTarget','load','environment','preferences','acceptanceCriteria'] as const).forEach((key) => {
+      if ((prev as any)[key] !== (next as any)[key]) {
+        const oldVal = (prev as any)[key] || '未设置'
+        const newVal = (next as any)[key] || '未设置'
+        diffs.push(`${key}: ${oldVal} -> ${newVal}`)
+      }
+    })
+    if (JSON.stringify(prev.priorities) !== JSON.stringify(next.priorities)) {
+      diffs.push(`priorities: ${(prev.priorities||[]).join('、')||'未设置'} -> ${(next.priorities||[]).join('、')||'未设置'}`)
+    }
+    if (diffs.length) setChanges(prevChanges => [...prevChanges, ...diffs])
+
+    setRequirements(next)
+  }
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
 
@@ -169,9 +330,9 @@ const ChatPanel = ({
         apiConfig: currentApiConfig || undefined
       })
 
-      // 更新会话ID
-      if (response.data.conversationId) {
-        conversationId.current = response.data.conversationId
+      // 更新会话ID (兼容不同字段名)
+      if (response.data.conversationId || response.data.conversation_id) {
+        conversationId.current = response.data.conversationId || response.data.conversation_id
       }
       
       // 模拟打字效果
@@ -187,13 +348,23 @@ const ChatPanel = ({
       setTimeout(() => {
         setMessages(prev => [...prev, assistantMessage])
         setIsTyping(false)
+        updateRequirementsFromAssistant(response.data.response || '')
       }, 500)
 
-      // 检查是否包含电路图或BOM数据
+      // 检查是否包含电路图或BOM数据，添加调试日志
+      console.log('检查响应数据:', {
+        hasCircuitData: !!response.data.circuit_data,
+        hasBomData: !!response.data.bom_data,
+        circuitComponents: response.data.circuit_data?.components?.length || 0,
+        bomItems: response.data.bom_data?.items?.length || 0
+      })
+      
       if (response.data.circuit_data && onCircuitGenerated) {
+        console.log('传递电路数据到父组件:', response.data.circuit_data)
         onCircuitGenerated(response.data.circuit_data)
       }
       if (response.data.bom_data && onBomGenerated) {
+        console.log('传递BOM数据到父组件:', response.data.bom_data)
         onBomGenerated(response.data.bom_data)
       }
 
@@ -290,11 +461,53 @@ const ChatPanel = ({
   const formatMessage = (content: string) => {
     // 简单的markdown格式化
     return content
-      .replace(/```([\s\S]*?)```/g, '<pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;"><code>$1</code></pre>')
+      .replace(/```([\s\S]*?)```/g, '<pre style="背景: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;"><code>$1</code></pre>')
       .replace(/`([^`]+)`/g, '<code style="background: #f0f0f0; padding: 2px 4px; border-radius: 2px;">$1</code>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br/>')
+  }
+
+  const buildDraftPromptFromRequirements = (req: Requirements) => {
+    const lines: string[] = []
+    lines.push('请根据以下“需求卡片”生成电路草案，包含：电路说明、ASCII电路图、元件列表、连接关系、BOM、关键参数计算与注意事项。')
+    lines.push('如果信息缺失，请用合理的行业默认值，并在“风险与待确认”中标注。')
+    lines.push('')
+    lines.push('【需求卡片】')
+    lines.push(`类型: ${req.type || '未指定'}`)
+    lines.push(`输入电源: ${req.inputPower || '未指定'}`)
+    lines.push(`目标输出: ${req.outputTarget || '未指定'}`)
+    lines.push(`负载特性: ${req.load || '未指定'}`)
+    lines.push(`优先级: ${(req.priorities || []).join('、') || '未指定'}`)
+    lines.push(`环境/安规: ${req.environment || '未指定'}`)
+    lines.push(`元件偏好/禁用: ${req.preferences || '未指定'}`)
+    lines.push(`验收标准: ${req.acceptanceCriteria || '未指定'}`)
+    lines.push('')
+    lines.push('请按标准格式输出各部分，并确保BOM非空。')
+    return lines.join('\n')
+  }
+
+  const handleGenerateDraft = async () => {
+    autoExtractRequirementsFromConversation()
+    setSidebarVisible(true)
+    const hasAny = Object.values(requirements).some((v) => (Array.isArray(v) ? v.length > 0 : !!v))
+    if (!hasAny) {
+      message.info('已从最近对话尝试提取信息，请补充关键项后再生成草案。')
+      return
+    }
+
+    // 生成前更新风险
+    const nextRisks: string[] = []
+    if (!requirements.inputPower) nextRisks.push('输入电源未明确')
+    if (!requirements.outputTarget) nextRisks.push('输出目标未明确')
+    if (!requirements.load) nextRisks.push('负载特性未明确')
+    if (!requirements.acceptanceCriteria) nextRisks.push('未设置验收标准')
+    setRisks(nextRisks)
+
+    const draftPrompt = buildDraftPromptFromRequirements(requirements)
+    setInputMessage(draftPrompt)
+    await new Promise((r) => setTimeout(r))
+    handleSendMessage()
   }
 
   return (
@@ -345,6 +558,19 @@ const ChatPanel = ({
             type="text"
             title="API设置"
           />
+          <Button 
+            onClick={() => { autoExtractRequirementsFromConversation(); setSidebarVisible(true) }}
+            size="small"
+            type="primary"
+          >
+            需求卡片
+          </Button>
+          <Button 
+            onClick={handleGenerateDraft}
+            size="small"
+          >
+            生成草案
+          </Button>
         </div>
       </div>
 
@@ -454,6 +680,16 @@ const ChatPanel = ({
         visible={showSettings}
         onClose={() => setShowSettings(false)}
         onSave={handleAPIConfig}
+      />
+
+      <RequirementCardSidebar
+        visible={sidebarVisible}
+        value={requirements}
+        onChange={handleRequirementsChange}
+        onClose={() => setSidebarVisible(false)}
+        onGenerateDraft={handleGenerateDraft}
+        risks={risks}
+        changes={changes}
       />
     </div>
   )

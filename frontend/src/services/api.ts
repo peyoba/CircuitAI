@@ -181,6 +181,8 @@ export const aiAPI = {
     return response.data
   },
 
+
+
   // 获取可用模型列表
   async getModels(): Promise<AIModel[]> {
     const response = await api.get<{ available_models: AIModel[] }>('/ai/models')
