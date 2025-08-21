@@ -252,10 +252,10 @@ const VisualCircuitViewer = ({
       title={
         <div className="flex items-center gap-2">
           <BgColorsOutlined className="text-purple-600" />
-          <span>Visual Schematic</span>
+          <span>{t('tab_visual')}</span>
           {layout && (
             <span className="text-sm text-gray-500">
-              ({layout.components.length}个元件)
+              ({layout.components.length} {t('components')})
             </span>
           )}
         </div>
@@ -270,12 +270,12 @@ const VisualCircuitViewer = ({
             size="small"
             style={{ width: 80 }}
           >
-            <Option value="light">Light</Option>
-            <Option value="dark">Dark</Option>
+            <Option value="light">{t('theme_light')}</Option>
+            <Option value="dark">{t('theme_dark')}</Option>
           </Select>
 
           {/* 网格控制 */}
-          <Tooltip title="Toggle grid">
+          <Tooltip title={t('toggle_grid')}>
             <Button
               icon={renderOptions.showGrid ? <AppstoreOutlined /> : <BorderOutlined />}
               onClick={() => handleGridToggle(!renderOptions.showGrid)}
@@ -285,7 +285,7 @@ const VisualCircuitViewer = ({
           </Tooltip>
 
           {/* 标签控制 */}
-          <Tooltip title="Toggle labels">
+          <Tooltip title={t('toggle_labels')}>
             <Button
               icon={<TagOutlined />}
               onClick={() => handleLabelsToggle(!renderOptions.showLabels)}
@@ -314,7 +314,7 @@ const VisualCircuitViewer = ({
           </Space.Compact>
 
           {/* 全屏 */}
-          <Tooltip title="Fullscreen">
+          <Tooltip title={t('fullscreen')}>
             <Button
               icon={<FullscreenOutlined />}
               onClick={handleFullscreen}
@@ -329,14 +329,14 @@ const VisualCircuitViewer = ({
               onClick={handleExportSVG}
               disabled={!layout}
             >
-              SVG
+              {t('export_svg')}
             </Button>
             <Button
               icon={<DownloadOutlined />}
               onClick={handleExportPNG}
               disabled={!layout}
             >
-              PNG
+              {t('export_png')}
             </Button>
           </Button.Group>
         </Space>
@@ -348,7 +348,7 @@ const VisualCircuitViewer = ({
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <label className="block text-gray-600 mb-1">Grid size</label>
+              <label className="block text-gray-600 mb-1">{t('grid_size')}</label>
               <Slider
                 min={10}
                 max={50}
@@ -362,7 +362,7 @@ const VisualCircuitViewer = ({
                 onChange={handleLabelsToggle}
                 size="small"
               />
-              <span className="ml-2">Show labels</span>
+              <span className="ml-2">{t('show_labels')}</span>
             </div>
             <div className="flex items-center">
               <Switch
@@ -370,7 +370,7 @@ const VisualCircuitViewer = ({
                 onChange={handlePinNumbersToggle}
                 size="small"
               />
-              <span className="ml-2">Show pin numbers</span>
+              <span className="ml-2">{t('show_pin_numbers')}</span>
             </div>
             <div className="flex items-center">
               <Switch
@@ -378,7 +378,7 @@ const VisualCircuitViewer = ({
                 size="small"
                 disabled
               />
-              <span className="ml-2 text-gray-400">Edit mode</span>
+              <span className="ml-2 text-gray-400">{t('edit_mode')}</span>
             </div>
           </div>
         </div>
@@ -398,7 +398,7 @@ const VisualCircuitViewer = ({
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className="text-gray-500">Generating schematic...</p>
+                <p className="text-gray-500">{t('generating_schematic')}</p>
               </div>
             </div>
           ) : layout && layout.components.length > 0 ? (
@@ -409,8 +409,8 @@ const VisualCircuitViewer = ({
             <div className="flex items-center justify-center h-full text-gray-500">
               <div className="text-center">
                 <BgColorsOutlined className="text-4xl mb-4 text-gray-300" />
-                <p>No schematic data</p>
-                <p className="text-sm">AI will generate a visual schematic from the chat</p>
+                <p>{t('no_schematic')}</p>
+                <p className="text-sm">{t('visual_schematic_hint')}</p>
               </div>
             </div>
           )}
@@ -421,7 +421,7 @@ const VisualCircuitViewer = ({
           <div className="mt-4 p-3 border rounded-lg">
             <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
               <EditOutlined />
-              组件库
+              {t('component_library')}
             </h4>
             <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
               {circuitRenderer.getAllSymbols().map((symbol) => (
@@ -430,7 +430,7 @@ const VisualCircuitViewer = ({
                     className="p-2 border rounded cursor-pointer hover:bg-blue-50 hover:border-blue-300 text-center"
                     onClick={() => {
                       // TODO: 添加组件到电路
-                      message.info(`选择了 ${symbol.name}`)
+                      message.info(t('selected_symbol', { name: symbol.name }))
                     }}
                   >
                     <div 
@@ -450,12 +450,12 @@ const VisualCircuitViewer = ({
         {layout && (
           <div className="mt-4 flex justify-between items-center text-xs text-gray-500 border-t pt-2">
             <div>
-              画布大小: {layout.bounds.width} × {layout.bounds.height} px
+              {t('canvas_size')}: {layout.bounds.width} × {layout.bounds.height} px
             </div>
             <div>
-              缩放: {Math.round(scale * 100)}% | 
-              网格: {renderOptions.showGrid ? '显示' : '隐藏'} | 
-              主题: {renderOptions.theme === 'dark' ? '深色' : '浅色'}
+              {t('scale_label')}: {Math.round(scale * 100)}% | 
+              {t('grid_label')}: {renderOptions.showGrid ? t('status_on') : t('status_off')} | 
+              {t('theme_label')}: {renderOptions.theme === 'dark' ? t('theme_dark') : t('theme_light')}
             </div>
           </div>
         )}
