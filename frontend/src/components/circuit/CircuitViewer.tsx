@@ -78,10 +78,10 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
     if (!circuitData?.ascii) {
       return (
         <Empty 
-          description={t('no_bom')}
+          description={t('no_schematic')}
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         >
-          <p className="text-gray-500">{t('input_placeholder')}</p>
+          <p className="text-gray-500">{t('schematic_hint')}</p>
         </Empty>
       )
     }
