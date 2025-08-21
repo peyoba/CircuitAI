@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Card, Table, Button, Space, Tag, message, InputNumber, Input } from 'antd'
 import { DownloadOutlined, ShoppingCartOutlined, EditOutlined, SaveOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
+import { useI18n } from '../../i18n/I18nProvider'
 
 interface BOMItem {
   id: string
@@ -24,6 +25,7 @@ interface BOMTableProps {
 }
 
 const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableProps) => {
+  const { t } = useI18n()
   const [data] = useState<BOMItem[]>(bomData)
   const [editingKey, setEditingKey] = useState('')
   const [showSummary, setShowSummary] = useState(true)
@@ -41,12 +43,12 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
 
   const save = async () => {
     setEditingKey('')
-    message.success('保存成功')
+    message.success(t('saved_success'))
   }
 
   const exportToCsv = () => {
     if (data.length === 0) {
-      message.warning('暂无数据可导出')
+      message.warning(t('no_data_to_export'))
       return
     }
 
@@ -78,17 +80,17 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    message.success('BOM表格已导出')
+    message.success(t('exported_bom_csv'))
   }
 
   const exportToPdf = () => {
     // TODO: 实现PDF导出功能
-    message.info('PDF导出功能开发中...')
+    message.info(t('pdf_export_wip'))
   }
 
   const openPurchaseLink = (item: BOMItem) => {
     // TODO: 集成采购链接
-    message.info(`正在查找 ${item.component} 的采购信息...`)
+    message.info(t('purchasing_lookup', { name: item.component }))
   }
 
   const calculateTotal = () => {
@@ -127,26 +129,26 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600">{data.length}</div>
-            <div className="text-sm text-gray-500">种元件</div>
+            <div className="text-sm text-gray-500">{t('kinds_of_components')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">{totalComponents}</div>
-            <div className="text-sm text-gray-500">总数量</div>
+            <div className="text-sm text-gray-500">{t('total_quantity')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600">¥{totalCost.toFixed(2)}</div>
-            <div className="text-sm text-gray-500">预估成本</div>
+            <div className="text-sm text-gray-500">{t('estimated_cost')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-600">{Object.keys(stats).length}</div>
-            <div className="text-sm text-gray-500">元件类别</div>
+            <div className="text-sm text-gray-500">{t('component_categories')}</div>
           </div>
         </div>
         <div className="mt-4 pt-4 border-t">
           <div className="flex flex-wrap gap-2">
             {Object.entries(stats).map(([type, count]) => (
               <Tag key={type} color="geekblue" className="mb-1">
-                {type}: {count}个
+                {type}: {count}
               </Tag>
             ))}
           </div>
@@ -157,14 +159,14 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
 
   const columns: ColumnsType<BOMItem> = [
     {
-      title: '序号',
+      title: t('table_index'),
       dataIndex: 'index',
       key: 'index',
       width: 60,
       render: (_, __, index) => index + 1
     },
     {
-      title: '标号',
+      title: t('table_ref'),
       dataIndex: 'reference',
       key: 'reference',
       width: 120,
@@ -179,7 +181,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
       )
     },
     {
-      title: '元件名称',
+      title: t('table_component'),
       dataIndex: 'component',
       key: 'component',
       width: 120,
@@ -193,7 +195,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
       )
     },
     {
-      title: '参数值',
+      title: t('table_value'),
       dataIndex: 'value',
       key: 'value',
       width: 100,
@@ -202,13 +204,13 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
       )
     },
     {
-      title: '封装',
+      title: t('table_package'),
       dataIndex: 'package',
       key: 'package',
       width: 80
     },
     {
-      title: '数量',
+      title: t('table_qty'),
       dataIndex: 'quantity',
       key: 'quantity',
       width: 80,
@@ -227,7 +229,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
       }
     },
     {
-      title: '制造商',
+      title: t('table_manufacturer'),
       dataIndex: 'manufacturer',
       key: 'manufacturer',
       width: 100,
@@ -245,7 +247,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
       }
     },
     {
-      title: '型号',
+      title: t('table_partnumber'),
       dataIndex: 'partNumber',
       key: 'partNumber',
       width: 120,
@@ -263,13 +265,13 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
       }
     },
     {
-      title: '供应商',
+      title: t('table_supplier'),
       dataIndex: 'supplier',
       key: 'supplier',
       width: 100
     },
     {
-      title: '单价 (¥)',
+      title: t('table_price'),
       dataIndex: 'price',
       key: 'price',
       width: 80,
@@ -291,7 +293,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
       }
     },
     {
-      title: '小计 (¥)',
+      title: t('table_subtotal'),
       key: 'subtotal',
       width: 80,
       render: (_, record) => {
@@ -307,7 +309,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
 
   if (editable) {
     columns.push({
-      title: '操作',
+      title: t('actions'),
       key: 'action',
       width: 120,
       render: (_, record) => {
@@ -320,9 +322,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
               size="small"
               type="primary"
             />
-            <Button onClick={cancel} size="small">
-              取消
-            </Button>
+            <Button onClick={cancel} size="small">{t('cancel_text')}</Button>
           </Space>
         ) : (
           <Space>

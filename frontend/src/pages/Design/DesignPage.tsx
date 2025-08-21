@@ -2,6 +2,7 @@ import { Layout, Row, Col, Button, Space, message, Tabs } from 'antd'
 import { useState } from 'react'
 import { SaveOutlined, FolderOpenOutlined, HomeOutlined, FileTextOutlined, BgColorsOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
+import { useI18n } from '../../i18n/I18nProvider'
 import ChatPanel from '../../components/ai/ChatPanel'
 import CircuitViewer from '../../components/circuit/CircuitViewer'
 import VisualCircuitViewer from '../../components/circuit/VisualCircuitViewer'
@@ -65,6 +66,7 @@ interface BOMItem {
 
 const DesignPage = () => {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [circuitData, setCircuitData] = useState<CircuitData>()
   const [bomData, setBomData] = useState<BOMItem[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
@@ -139,30 +141,22 @@ const DesignPage = () => {
             icon={<HomeOutlined />} 
             onClick={() => navigate('/')}
             type="text"
-          >
-            返回首页
-          </Button>
+          >{t('back_home')}</Button>
           {currentProject && (
-            <div className="text-sm text-gray-600">
-              当前项目: <span className="font-semibold">{currentProject.name}</span>
-            </div>
+            <div className="text-sm text-gray-600">{t('current_project')}: <span className="font-semibold">{currentProject.name}</span></div>
           )}
         </div>
         <Space>
           <Button
             icon={<FolderOpenOutlined />}
             onClick={() => setShowProjectManager(true)}
-          >
-            项目管理
-          </Button>
+          >{t('project_manager')}</Button>
           <Button
             type="primary"
             icon={<SaveOutlined />}
             onClick={() => setShowProjectManager(true)}
             disabled={!circuitData && chatHistory.length === 0}
-          >
-            保存项目
-          </Button>
+          >{t('save_project')}</Button>
         </Space>
       </div>
 
@@ -188,10 +182,7 @@ const DesignPage = () => {
                   {
                     key: 'ascii',
                     label: (
-                      <span>
-                        <FileTextOutlined />
-                        ASCII电路图
-                      </span>
+                      <span><FileTextOutlined /> {t('tab_ascii')}</span>
                     ),
                     children: (
                       <CircuitViewer 
@@ -203,10 +194,7 @@ const DesignPage = () => {
                   {
                     key: 'visual',
                     label: (
-                      <span>
-                        <BgColorsOutlined />
-                        可视化电路图
-                      </span>
+                      <span><BgColorsOutlined /> {t('tab_visual')}</span>
                     ),
                     children: (
                       <VisualCircuitViewer
