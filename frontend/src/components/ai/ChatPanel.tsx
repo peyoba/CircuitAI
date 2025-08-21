@@ -522,31 +522,35 @@ const ChatPanel = ({
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* 头部 */}
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-        <div className="flex items-center gap-2">
-          <RobotOutlined className="text-blue-500 text-lg" />
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">{t('ai_assistant')}</h3>
-            <StatusIndicator 
-              model={availableProviders.find(p => p.value === selectedProvider)?.label || selectedProvider}
-              isConfigured={apiConfigured}
-            />
+      {/* 头部（两行布局，避免窄侧栏拥挤换行） */}
+      <div className="p-3 border-b bg-gray-50">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <RobotOutlined className="text-blue-500 text-lg flex-shrink-0" />
+            <div className="min-w-0">
+              <h3 className="text-base font-semibold text-gray-800 truncate">{t('ai_assistant')}</h3>
+              <StatusIndicator 
+                model={availableProviders.find(p => p.value === selectedProvider)?.label || selectedProvider}
+                isConfigured={apiConfigured}
+              />
+            </div>
+          </div>
+          <div className="flex items-center">
+            <Select
+              value={selectedProvider}
+              onChange={setSelectedProvider}
+              size="small"
+              style={{ minWidth: 160 }}
+            >
+              {availableProviders.map(provider => (
+                <Option key={provider.value} value={provider.value}>
+                  {provider.icon} {provider.label}
+                </Option>
+              ))}
+            </Select>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Select
-            value={selectedProvider}
-            onChange={setSelectedProvider}
-            size="small"
-            style={{ width: 140 }}
-          >
-            {availableProviders.map(provider => (
-              <Option key={provider.value} value={provider.value}>
-                {provider.icon} {provider.label}
-              </Option>
-            ))}
-          </Select>
+        <div className="mt-2 flex flex-wrap items-center gap-1">
           <Button icon={<DownloadOutlined />} onClick={exportChat} size="small" type="text" title={t('export_chat')} />
           <Button 
             icon={<ClearOutlined />} 
