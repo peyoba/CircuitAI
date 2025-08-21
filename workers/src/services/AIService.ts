@@ -100,6 +100,9 @@ export class AIService {
       if (response && response.response && provider !== 'mock') {
         console.log('开始提取电路数据，响应长度:', response.response.length)
         try {
+          // 预先声明变量，避免未声明引用导致的运行时错误
+          let circuit_data: any = null
+          let bom_data: any = null
           // 添加数据提取超时保护
           const extractionPromise = this.extractDataFromResponse(response.response)
           const timeoutPromise = new Promise((_, reject) => 
@@ -107,8 +110,8 @@ export class AIService {
           )
           
           const extractionResult = await Promise.race([extractionPromise, timeoutPromise]) as any
-          circuit_data = extractionResult.circuit_data
-          bom_data = extractionResult.bom_data
+          circuit_data = extractionResult?.circuit_data
+          bom_data = extractionResult?.bom_data
           console.log('提取结果:', { 
             hasCircuitData: !!circuit_data, 
             hasBomData: !!bom_data,
