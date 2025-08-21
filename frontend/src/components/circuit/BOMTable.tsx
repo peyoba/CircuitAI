@@ -239,7 +239,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
           <Input
             defaultValue={text}
             size="small"
-            placeholder="制造商"
+            placeholder={t('table_manufacturer')}
           />
         ) : (
           <span>{text || '-'}</span>
@@ -257,7 +257,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
           <Input
             defaultValue={text}
             size="small"
-            placeholder="型号"
+            placeholder={t('table_partnumber')}
           />
         ) : (
           <span className="font-mono">{text || '-'}</span>
@@ -390,8 +390,8 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
         {data.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
             <ShoppingCartOutlined className="text-4xl mb-4" />
-            <p>暂无BOM数据</p>
-            <p className="text-sm">AI将根据电路设计自动生成物料清单</p>
+            <p>{t('no_bom')}</p>
+            <p className="text-sm">{t('bom_hint')}</p>
           </div>
         ) : (
           <>
@@ -405,23 +405,20 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
               pagination={{
                 showSizeChanger: true,
                 showQuickJumper: true,
-                showTotal: (total, range) => 
-                  `显示 ${range[0]}-${range[1]} 条，共 ${total} 条记录`
+                showTotal: (total, range) => t('show_total_range', { start: range[0], end: range[1], total })
               }}
             />
             
             {totalCost > 0 && (
               <div className="mt-4 p-3 bg-green-50 rounded-lg flex justify-between items-center">
-                <span className="text-green-700">总成本估算</span>
+                <span className="text-green-700">{t('total_cost_estimate')}</span>
                 <span className="text-2xl font-bold text-green-600">
                   ¥{totalCost.toFixed(2)}
                 </span>
               </div>
             )}
             
-            <div className="mt-2 text-xs text-gray-500">
-              * 价格仅供参考，实际采购价格可能有所不同
-            </div>
+            <div className="mt-2 text-xs text-gray-500">{t('price_disclaimer')}</div>
           </>
         )}
       </div>

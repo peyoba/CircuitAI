@@ -120,6 +120,21 @@ export const translations = {
     show_total_range: 'Showing {start}-{end} of {total} records',
     total_cost_estimate: 'Total Cost Estimate',
     price_disclaimer: '* Prices are reference only and may vary in purchasing',
+    // CircuitViewer
+    copied: 'Copied to clipboard',
+    copy_failed: 'Copy failed',
+    line_numbers: 'Line #',
+    copy: 'Copy',
+    download: 'Download',
+    description: 'Description',
+    no_component_info: 'No component info',
+    type: 'Type',
+    circuit_properties: 'Circuit Properties',
+    no_connection_info: 'No connection info',
+    circuit_design: 'Circuit Design',
+    schematic_tab: 'Schematic',
+    components_tab: 'Components',
+    connections_tab: 'Connections',
   },
   zh: {
     app_title: 'CircuitAI',
@@ -240,6 +255,21 @@ export const translations = {
     show_total_range: '显示 {start}-{end} 条，共 {total} 条记录',
     total_cost_estimate: '总成本估算',
     price_disclaimer: '* 价格仅供参考，实际采购价格可能有所不同',
+    // CircuitViewer
+    copied: '已复制到剪贴板',
+    copy_failed: '复制失败',
+    line_numbers: '行号',
+    copy: '复制',
+    download: '下载',
+    description: '电路说明',
+    no_component_info: '暂无元件信息',
+    type: '类型',
+    circuit_properties: '整体电路参数',
+    no_connection_info: '暂无连接信息',
+    circuit_design: '电路设计',
+    schematic_tab: '电路图',
+    components_tab: '元件',
+    connections_tab: '连接',
   }
 }
 

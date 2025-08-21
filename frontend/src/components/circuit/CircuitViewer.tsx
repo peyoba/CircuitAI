@@ -56,9 +56,9 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      message.success('Copied to clipboard')
+      message.success(t('copied'))
     } catch (error) {
-      message.error('Copy failed')
+      message.error(t('copy_failed'))
     }
   }
 
@@ -106,7 +106,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
               onClick={() => setShowLineNumbers(!showLineNumbers)}
               size="small"
               type={showLineNumbers ? 'primary' : 'default'}
-            >Line #</Button>
+            >{t('line_numbers')}</Button>
             <Button
               onClick={() => setDarkMode(!darkMode)}
               size="small"
@@ -120,12 +120,12 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
               icon={<CopyOutlined />}
               onClick={() => copyToClipboard(circuitData.ascii || '')}
               size="small"
-            >Copy</Button>
+            >{t('copy')}</Button>
             <Button
               icon={<DownloadOutlined />}
               onClick={() => downloadAsText(circuitData.ascii || '', 'circuit.txt')}
               size="small"
-            >Download</Button>
+            >{t('download')}</Button>
           </div>
         </div>
         
@@ -177,7 +177,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
         
         {circuitData.description && (
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <h4 className="text-sm font-semibold text-blue-800 mb-2">Description</h4>
+            <h4 className="text-sm font-semibold text-blue-800 mb-2">{t('description')}</h4>
             <p className="text-sm text-blue-700">{circuitData.description}</p>
           </div>
         )}
@@ -189,7 +189,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
     if (!circuitData?.components || circuitData.components.length === 0) {
       return (
         <Empty 
-          description="No component info"
+          description={t('no_component_info')}
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
       )
@@ -233,27 +233,27 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
                   {/* 详细参数表格 */}
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Type:</span>
+                      <span className="text-gray-600">{t('type')}:</span>
                       <span className="font-mono text-gray-800">{component.type}</span>
                     </div>
                     
                     {component.value && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Value:</span>
+                        <span className="text-gray-600">{t('table_value')}:</span>
                         <span className="font-mono text-blue-600 font-semibold">{component.value}</span>
                       </div>
                     )}
                     
                     {component.reference && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Ref:</span>
+                        <span className="text-gray-600">{t('table_ref')}:</span>
                         <span className="font-mono text-gray-800">{component.reference}</span>
                       </div>
                     )}
                     
                     {component.package && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Package:</span>
+                        <span className="text-gray-600">{t('table_package')}:</span>
                         <span className="font-mono text-gray-800">{component.package}</span>
                       </div>
                     )}
@@ -284,7 +284,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
         {/* 显示通用电路参数 */}
         {circuitData?.properties && circuitData.properties.length > 0 && (
           <div className="border rounded-lg p-4 bg-blue-50">
-            <h4 className="text-lg font-semibold text-blue-800 mb-3">Circuit Properties</h4>
+            <h4 className="text-lg font-semibold text-blue-800 mb-3">{t('circuit_properties')}</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {circuitData.properties.map((prop, index) => (
                 <div key={index} className="flex flex-col">
@@ -308,7 +308,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
     if (!circuitData?.connections || circuitData.connections.length === 0) {
       return (
         <Empty 
-          description="No connection info"
+          description={t('no_connection_info')}
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
       )
@@ -359,7 +359,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
 
   return (
     <Card 
-      title="Circuit Design" 
+      title={t('circuit_design')} 
       className="h-full"
       styles={{ body: { padding: 0, height: 'calc(100% - 57px)' } }}
     >
@@ -371,7 +371,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
         items={[
           {
             key: 'ascii',
-            label: 'Schematic',
+            label: t('schematic_tab'),
             children: (
               <div className="h-full overflow-auto p-4">
                 {renderASCIICircuit()}
@@ -380,7 +380,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
           },
           {
             key: 'components',
-            label: 'Components',
+            label: t('components_tab'),
             children: (
               <div className="h-full overflow-auto p-4">
                 {renderComponentsList()}
@@ -389,7 +389,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
           },
           {
             key: 'connections',
-            label: 'Connections',
+            label: t('connections_tab'),
             children: (
               <div className="h-full overflow-auto p-4">
                 {renderConnectionsList()}
