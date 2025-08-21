@@ -68,7 +68,7 @@ const ChatPanel = ({
     {
       id: '1',
       role: 'assistant',
-      content: '您好！我是CircuitsAI智能助手。我可以帮您：\n\n🔹 分析电路设计需求\n🔹 生成电路原理图\n🔹 提供元件选型建议\n🔹 计算电路参数\n\n请详细描述您想要设计的电路功能！',
+      content: t('assistant_welcome'),
       timestamp: new Date()
     }
   ])
@@ -79,10 +79,10 @@ const ChatPanel = ({
   const [apiConfigured, setApiConfigured] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [quickActions] = useState([
-    '设计一个5V稳压电路',
-    '帮我设计LED闪烁电路',
-    '需要一个运放放大器',
-    '设计音频功放电路'
+    t('quick_action_5v_regulator'),
+    t('quick_action_led_blink'),
+    t('quick_action_opamp_amplifier'),
+    t('quick_action_audio_amp')
   ])
   const [currentApiConfig, setCurrentApiConfig] = useState<{
     provider: string
@@ -663,7 +663,7 @@ const ChatPanel = ({
             disabled={!inputMessage.trim() || isLoading}
             className="h-20"
           >
-            {t('generate_draft')}
+            {t('send')}
           </Button>
         </div>
         <div className="text-xs text-gray-500 mt-2">

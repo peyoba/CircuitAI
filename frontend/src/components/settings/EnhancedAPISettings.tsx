@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Modal, Form, Input, Select, Button, message, Space, Card, Alert, Divider, Switch, AutoComplete } from 'antd'
+import { useI18n } from '../../i18n/I18nProvider'
 import { SettingOutlined, EyeInvisibleOutlined, EyeTwoTone, CheckOutlined, PlusOutlined } from '@ant-design/icons'
 import { aiAPI } from '../../services/api'
 
@@ -26,6 +27,7 @@ interface EnhancedAPISettingsProps {
 
 const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsProps) => {
   const [form] = Form.useForm()
+  const { t } = useI18n()
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean, message: string } | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -421,22 +423,16 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
       title={
         <Space>
           <SettingOutlined />
-          AI API配置
+          {t('settings_title')}
         </Space>
       }
       open={visible}
       onCancel={handleClose}
       width={700}
       footer={[
-        <Button key="cancel" onClick={handleClose}>
-          取消
-        </Button>,
-        <Button key="test" onClick={testConnection} loading={testing}>
-          测试连接
-        </Button>,
-        <Button key="save" type="primary" onClick={handleSave}>
-          保存配置
-        </Button>
+        <Button key="cancel" onClick={handleClose}>{t('cancel')}</Button>,
+        <Button key="test" onClick={testConnection} loading={testing}>{t('test_connection')}</Button>,
+        <Button key="save" type="primary" onClick={handleSave}>{t('save_config')}</Button>
       ]}
     >
       <Form
@@ -453,15 +449,15 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
         }}
       >
         <Alert
-          message="AI API配置"
-          description="每个AI提供商的配置独立保存，您可以为不同的提供商配置不同的API密钥和参数。"
+          message={t('settings_title')}
+          description=""
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
         />
 
         <Form.Item
-          label="AI提供商"
+          label={t('provider_label')}
           name="provider"
           rules={[{ required: true, message: '请选择AI提供商' }]}
         >
@@ -480,7 +476,7 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
         </Form.Item>
 
         <Form.Item
-          label="API密钥"
+          label={t('api_key_label')}
           name="apiKey"
           rules={[
             { required: true, message: '请输入API密钥' },
@@ -494,7 +490,7 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
         </Form.Item>
 
         <Form.Item
-          label="API地址"
+          label={t('api_url_label')}
           name="apiUrl"
           rules={[
             { required: true, message: '请输入API地址' },
@@ -505,7 +501,7 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
         </Form.Item>
 
         <Form.Item
-          label="模型名称"
+          label={t('model_name_label')}
           name="model"
           rules={[{ required: true, message: '请输入模型名称' }]}
           extra="可以输入任意模型名称，支持自动补全"
@@ -524,7 +520,7 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
 
         <Divider>
           <Space>
-            高级选项
+            {t('advanced_options')}
             <Switch checked={showAdvanced} onChange={setShowAdvanced} />
           </Space>
         </Divider>
@@ -551,7 +547,7 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
 
             <div style={{ display: 'flex', gap: '16px' }}>
               <Form.Item
-                label="请求格式"
+                label={t('request_format')}
                 name="requestFormat"
                 style={{ flex: 1 }}
               >
@@ -563,7 +559,7 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
               </Form.Item>
 
               <Form.Item
-                label="响应格式"
+                label={t('response_format')}
                 name="responseFormat"
                 style={{ flex: 1 }}
               >
@@ -577,10 +573,8 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
 
             <div>
               <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>自定义请求头</span>
-                <Button icon={<PlusOutlined />} onClick={addCustomHeader} size="small">
-                  添加
-                </Button>
+                <span>{t('custom_headers')}</span>
+                <Button icon={<PlusOutlined />} onClick={addCustomHeader} size="small">{t('add')}</Button>
               </div>
               {customHeaders.map((header, index) => (
                 <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
@@ -596,9 +590,7 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
                     onChange={(e) => updateCustomHeader(index, 'value', e.target.value)}
                     style={{ flex: 1 }}
                   />
-                  <Button onClick={() => removeCustomHeader(index)} size="small">
-                    删除
-                  </Button>
+                  <Button onClick={() => removeCustomHeader(index)} size="small">{t('delete')}</Button>
                 </div>
               ))}
             </div>
