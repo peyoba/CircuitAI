@@ -64,26 +64,31 @@ const ChatPanel = ({
   onChatHistory,
   initialMessages 
 }: ChatPanelProps) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: t('assistant_welcome'),
-      timestamp: new Date()
-    }
-  ])
+  const { t } = useI18n()
+  const [messages, setMessages] = useState<ChatMessage[]>([{
+    id: '1', role: 'assistant', content: '', timestamp: new Date()
+  }])
+  useEffect(() => {
+    // 初始化首条欢迎语（依赖语言）
+    setMessages([{ id: '1', role: 'assistant', content: t('assistant_welcome'), timestamp: new Date() }])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState('openai')
   const [showSettings, setShowSettings] = useState(false)
   const [apiConfigured, setApiConfigured] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
-  const [quickActions] = useState([
-    t('quick_action_5v_regulator'),
-    t('quick_action_led_blink'),
-    t('quick_action_opamp_amplifier'),
-    t('quick_action_audio_amp')
-  ])
+  const [quickActions, setQuickActions] = useState<string[]>([])
+  useEffect(() => {
+    setQuickActions([
+      t('quick_action_5v_regulator'),
+      t('quick_action_led_blink'),
+      t('quick_action_opamp_amplifier'),
+      t('quick_action_audio_amp')
+    ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t])
   const [currentApiConfig, setCurrentApiConfig] = useState<{
     provider: string
     apiKey: string
@@ -112,7 +117,6 @@ const ChatPanel = ({
   })
   const [risks, setRisks] = useState<string[]>([])
   const [changes, setChanges] = useState<string[]>([])
-  const { t } = useI18n()
 
   const availableProviders = [
     { value: 'openai', label: 'OpenAI GPT', icon: '🤖' },
@@ -337,8 +341,8 @@ const ChatPanel = ({
       })
 
       // 更新会话ID (兼容不同字段名)
-      if (response.data.conversationId || response.data.conversation_id) {
-        conversationId.current = response.data.conversationId || response.data.conversation_id
+      if (response.data.conversationId) {
+        conversationId.current = response.data.conversationId
       }
       
       // 模拟打字效果

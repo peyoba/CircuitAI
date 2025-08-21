@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState, useEffect } from 'react'
+import React, { createContext, useContext, useMemo, useState } from 'react'
 import { translations, TranslationKey } from './translations'
 
 type Language = 'en' | 'zh'
