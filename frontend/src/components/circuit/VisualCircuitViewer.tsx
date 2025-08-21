@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Card, Button, Space, Switch, Slider, Select, Tooltip, message } from 'antd'
+import { useI18n } from '../../i18n/I18nProvider'
 import { 
   ZoomInOutlined, 
   ZoomOutOutlined, 
@@ -47,6 +48,7 @@ const VisualCircuitViewer = ({
   loading = false, 
   editable = false
 }: VisualCircuitViewerProps) => {
+  const { t } = useI18n()
   const svgRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
   const [layout, setLayout] = useState<CircuitLayout | null>(null)
@@ -171,7 +173,7 @@ const VisualCircuitViewer = ({
 
   const handleExportSVG = () => {
     if (!layout) {
-      message.warning('没有可导出的电路图')
+      message.warning('No schematic to export')
       return
     }
 
@@ -187,12 +189,12 @@ const VisualCircuitViewer = ({
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
     
-    message.success('SVG导出成功')
+    message.success('SVG exported')
   }
 
   const handleExportPNG = async () => {
     if (!layout) {
-      message.warning('没有可导出的电路图')
+      message.warning('No schematic to export')
       return
     }
 
@@ -213,9 +215,9 @@ const VisualCircuitViewer = ({
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
       
-      message.success('PNG导出成功')
+      message.success('PNG exported')
     } catch (error) {
-      message.error('PNG导出失败：' + (error as Error).message)
+      message.error('PNG export failed: ' + (error as Error).message)
     }
   }
 
@@ -250,7 +252,7 @@ const VisualCircuitViewer = ({
       title={
         <div className="flex items-center gap-2">
           <BgColorsOutlined className="text-purple-600" />
-          <span>可视化电路图</span>
+          <span>Visual Schematic</span>
           {layout && (
             <span className="text-sm text-gray-500">
               ({layout.components.length}个元件)
@@ -268,12 +270,12 @@ const VisualCircuitViewer = ({
             size="small"
             style={{ width: 80 }}
           >
-            <Option value="light">浅色</Option>
-            <Option value="dark">深色</Option>
+            <Option value="light">Light</Option>
+            <Option value="dark">Dark</Option>
           </Select>
 
           {/* 网格控制 */}
-          <Tooltip title="显示/隐藏网格">
+          <Tooltip title="Toggle grid">
             <Button
               icon={renderOptions.showGrid ? <AppstoreOutlined /> : <BorderOutlined />}
               onClick={() => handleGridToggle(!renderOptions.showGrid)}
@@ -283,7 +285,7 @@ const VisualCircuitViewer = ({
           </Tooltip>
 
           {/* 标签控制 */}
-          <Tooltip title="显示/隐藏标签">
+          <Tooltip title="Toggle labels">
             <Button
               icon={<TagOutlined />}
               onClick={() => handleLabelsToggle(!renderOptions.showLabels)}
@@ -312,7 +314,7 @@ const VisualCircuitViewer = ({
           </Space.Compact>
 
           {/* 全屏 */}
-          <Tooltip title="全屏显示">
+          <Tooltip title="Fullscreen">
             <Button
               icon={<FullscreenOutlined />}
               onClick={handleFullscreen}
@@ -346,7 +348,7 @@ const VisualCircuitViewer = ({
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <label className="block text-gray-600 mb-1">网格大小</label>
+              <label className="block text-gray-600 mb-1">Grid size</label>
               <Slider
                 min={10}
                 max={50}
@@ -360,7 +362,7 @@ const VisualCircuitViewer = ({
                 onChange={handleLabelsToggle}
                 size="small"
               />
-              <span className="ml-2">显示标签</span>
+              <span className="ml-2">Show labels</span>
             </div>
             <div className="flex items-center">
               <Switch
@@ -368,7 +370,7 @@ const VisualCircuitViewer = ({
                 onChange={handlePinNumbersToggle}
                 size="small"
               />
-              <span className="ml-2">显示引脚号</span>
+              <span className="ml-2">Show pin numbers</span>
             </div>
             <div className="flex items-center">
               <Switch
@@ -376,7 +378,7 @@ const VisualCircuitViewer = ({
                 size="small"
                 disabled
               />
-              <span className="ml-2 text-gray-400">编辑模式</span>
+              <span className="ml-2 text-gray-400">Edit mode</span>
             </div>
           </div>
         </div>
@@ -396,7 +398,7 @@ const VisualCircuitViewer = ({
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className="text-gray-500">正在生成电路图...</p>
+                <p className="text-gray-500">Generating schematic...</p>
               </div>
             </div>
           ) : layout && layout.components.length > 0 ? (
@@ -407,8 +409,8 @@ const VisualCircuitViewer = ({
             <div className="flex items-center justify-center h-full text-gray-500">
               <div className="text-center">
                 <BgColorsOutlined className="text-4xl mb-4 text-gray-300" />
-                <p>暂无电路图数据</p>
-                <p className="text-sm">AI将根据对话内容自动生成可视化电路图</p>
+                <p>No schematic data</p>
+                <p className="text-sm">AI will generate a visual schematic from the chat</p>
               </div>
             </div>
           )}
