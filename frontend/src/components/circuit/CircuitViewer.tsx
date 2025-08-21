@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Card, Tabs, Button, message, Spin, Empty } from 'antd'
+import { useI18n } from '../../i18n/I18nProvider'
 import { CopyOutlined, DownloadOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons'
 
 interface Component {
@@ -46,6 +47,7 @@ interface CircuitViewerProps {
 }
 
 const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState('ascii')
   const [fontSize, setFontSize] = useState(12)
   const [darkMode, setDarkMode] = useState(true)
@@ -54,9 +56,9 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      message.success('已复制到剪贴板')
+      message.success('Copied to clipboard')
     } catch (error) {
-      message.error('复制失败')
+      message.error('Copy failed')
     }
   }
 
@@ -76,10 +78,10 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
     if (!circuitData?.ascii) {
       return (
         <Empty 
-          description="暂无电路图"
+          description={t('no_bom')}
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         >
-          <p className="text-gray-500">请在左侧描述您的电路设计需求</p>
+          <p className="text-gray-500">{t('input_placeholder')}</p>
         </Empty>
       )
     }
@@ -104,9 +106,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
               onClick={() => setShowLineNumbers(!showLineNumbers)}
               size="small"
               type={showLineNumbers ? 'primary' : 'default'}
-            >
-              行号
-            </Button>
+            >Line #</Button>
             <Button
               onClick={() => setDarkMode(!darkMode)}
               size="small"
@@ -120,16 +120,12 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
               icon={<CopyOutlined />}
               onClick={() => copyToClipboard(circuitData.ascii || '')}
               size="small"
-            >
-              复制
-            </Button>
+            >Copy</Button>
             <Button
               icon={<DownloadOutlined />}
               onClick={() => downloadAsText(circuitData.ascii || '', 'circuit.txt')}
               size="small"
-            >
-              下载
-            </Button>
+            >Download</Button>
           </div>
         </div>
         
@@ -181,7 +177,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
         
         {circuitData.description && (
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <h4 className="text-sm font-semibold text-blue-800 mb-2">电路说明：</h4>
+            <h4 className="text-sm font-semibold text-blue-800 mb-2">Description</h4>
             <p className="text-sm text-blue-700">{circuitData.description}</p>
           </div>
         )}
@@ -193,7 +189,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
     if (!circuitData?.components || circuitData.components.length === 0) {
       return (
         <Empty 
-          description="暂无元件信息"
+          description="No component info"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
       )
@@ -237,27 +233,27 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
                   {/* 详细参数表格 */}
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">类型:</span>
+                      <span className="text-gray-600">Type:</span>
                       <span className="font-mono text-gray-800">{component.type}</span>
                     </div>
                     
                     {component.value && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">参数:</span>
+                        <span className="text-gray-600">Value:</span>
                         <span className="font-mono text-blue-600 font-semibold">{component.value}</span>
                       </div>
                     )}
                     
                     {component.reference && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">位号:</span>
+                        <span className="text-gray-600">Ref:</span>
                         <span className="font-mono text-gray-800">{component.reference}</span>
                       </div>
                     )}
                     
                     {component.package && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">封装:</span>
+                        <span className="text-gray-600">Package:</span>
                         <span className="font-mono text-gray-800">{component.package}</span>
                       </div>
                     )}
@@ -288,7 +284,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
         {/* 显示通用电路参数 */}
         {circuitData?.properties && circuitData.properties.length > 0 && (
           <div className="border rounded-lg p-4 bg-blue-50">
-            <h4 className="text-lg font-semibold text-blue-800 mb-3">整体电路参数</h4>
+            <h4 className="text-lg font-semibold text-blue-800 mb-3">Circuit Properties</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {circuitData.properties.map((prop, index) => (
                 <div key={index} className="flex flex-col">
@@ -312,7 +308,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
     if (!circuitData?.connections || circuitData.connections.length === 0) {
       return (
         <Empty 
-          description="暂无连接信息"
+          description="No connection info"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
       )
@@ -355,7 +351,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
       <Card className="h-full">
         <div className="flex items-center justify-center h-96">
           <Spin size="large" />
-          <span className="ml-3">正在生成电路图...</span>
+          <span className="ml-3">Generating circuit...</span>
         </div>
       </Card>
     )
@@ -363,7 +359,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
 
   return (
     <Card 
-      title="电路设计" 
+      title="Circuit Design" 
       className="h-full"
       styles={{ body: { padding: 0, height: 'calc(100% - 57px)' } }}
     >
@@ -375,7 +371,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
         items={[
           {
             key: 'ascii',
-            label: '电路图',
+            label: 'Schematic',
             children: (
               <div className="h-full overflow-auto p-4">
                 {renderASCIICircuit()}
@@ -384,7 +380,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
           },
           {
             key: 'components',
-            label: '元件列表',
+            label: 'Components',
             children: (
               <div className="h-full overflow-auto p-4">
                 {renderComponentsList()}
@@ -393,7 +389,7 @@ const CircuitViewer = ({ circuitData, loading = false }: CircuitViewerProps) => 
           },
           {
             key: 'connections',
-            label: '连接关系',
+            label: 'Connections',
             children: (
               <div className="h-full overflow-auto p-4">
                 {renderConnectionsList()}
