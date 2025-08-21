@@ -1,4 +1,5 @@
 import { Badge, Tooltip } from 'antd'
+import { useI18n } from '../../i18n/I18nProvider'
 import { CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 
 interface StatusIndicatorProps {
@@ -7,22 +8,23 @@ interface StatusIndicatorProps {
 }
 
 const StatusIndicator = ({ model, isConfigured }: StatusIndicatorProps) => {
+  const { t } = useI18n()
   if (isConfigured) {
     return (
-      <Tooltip title="API已配置">
+      <Tooltip title={t('settings_title')}>
         <Badge 
           status="success" 
-          text={<span><CheckCircleOutlined style={{ marginRight: 4 }} />{`${model} (已配置)`}</span>}
+          text={<span><CheckCircleOutlined style={{ marginRight: 4 }} />{`${model} (Configured)`}</span>}
         />
       </Tooltip>
     )
   }
 
   return (
-    <Tooltip title="使用模拟响应，点击设置按钮配置真实API">
+    <Tooltip title={t('api_settings')}>
       <Badge 
         status="warning" 
-        text={<span><ExclamationCircleOutlined style={{ marginRight: 4 }} />{`${model} (模拟模式)`}</span>}
+        text={<span><ExclamationCircleOutlined style={{ marginRight: 4 }} />{`${model} (Mock)`}</span>}
       />
     </Tooltip>
   )

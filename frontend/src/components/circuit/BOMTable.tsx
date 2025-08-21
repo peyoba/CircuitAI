@@ -348,7 +348,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
   return (
     <div className="h-full">
       <Card 
-        title="物料清单 (BOM)"
+        title={t('bom_title')}
         className="h-full"
         extra={
           <Space>
@@ -357,21 +357,21 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
               size="small"
               type={showSummary ? 'primary' : 'default'}
             >
-              统计
+              {t('stats')}
             </Button>
             <Button
               onClick={() => setGroupByType(!groupByType)}
               size="small"
               type={groupByType ? 'primary' : 'default'}
             >
-              分组
+              {t('group')}
             </Button>
             <Button
               icon={<DownloadOutlined />}
               onClick={exportToCsv}
               size="small"
             >
-              导出CSV
+              {t('export_csv')}
             </Button>
             <Button
               icon={<DownloadOutlined />}
@@ -379,7 +379,7 @@ const BOMTable = ({ bomData = [], loading = false, editable = false }: BOMTableP
               size="small"
               type="primary"
             >
-              导出PDF
+              {t('export_pdf')}
             </Button>
           </Space>
         }
