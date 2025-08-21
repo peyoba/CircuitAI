@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { Drawer, Form, Input, Select, Button, Divider, Space, Tag, List } from 'antd'
+import { useI18n } from '../../i18n/I18nProvider'
 
 export interface Requirements {
   type: string
@@ -32,6 +33,7 @@ const priorityOptions = [
 
 const RequirementCardSidebar: React.FC<RequirementCardSidebarProps> = ({ visible, value, onChange, onClose, onGenerateDraft, risks = [], changes = [] }) => {
   const [form] = Form.useForm<Requirements>()
+  const { t } = useI18n()
 
   const handleValuesChange = (_: any, allValues: Requirements) => {
     onChange(allValues)
@@ -52,7 +54,7 @@ const RequirementCardSidebar: React.FC<RequirementCardSidebarProps> = ({ visible
 
   return (
     <Drawer
-      title="需求卡片"
+      title={t('req_card_title')}
       placement="right"
       width={420}
       onClose={onClose}
@@ -60,8 +62,8 @@ const RequirementCardSidebar: React.FC<RequirementCardSidebarProps> = ({ visible
       destroyOnClose
       extra={
         <Space>
-          <Button onClick={() => form.resetFields()}>重置</Button>
-          <Button type="primary" onClick={onGenerateDraft}>生成草案</Button>
+          <Button onClick={() => form.resetFields()}>{t('reset')}</Button>
+          <Button type="primary" onClick={onGenerateDraft}>{t('generate_draft')}</Button>
         </Space>
       }
     >
@@ -71,44 +73,44 @@ const RequirementCardSidebar: React.FC<RequirementCardSidebarProps> = ({ visible
         initialValues={value}
         onValuesChange={handleValuesChange}
       >
-        <Form.Item label="电路类型" name="type">
+        <Form.Item label={t('field_circuit_type')} name="type">
           <Input placeholder="例如：LED驱动 / 电源稳压 / 放大器" />
         </Form.Item>
 
-        <Form.Item label="输入电源" name="inputPower">
+        <Form.Item label={t('field_input_power')} name="inputPower">
           <Input placeholder="例如：5V / 12V / 电池3.7V" />
         </Form.Item>
 
-        <Form.Item label="目标输出" name="outputTarget">
+        <Form.Item label={t('field_output_target')} name="outputTarget">
           <Input placeholder="例如：恒流10mA / 恒压5V / 增益20dB" />
         </Form.Item>
 
-        <Form.Item label="负载特性" name="load">
+        <Form.Item label={t('field_load')} name="load">
           <Input placeholder="例如：单颗LED / 扬声器8Ω / 传感器输入" />
         </Form.Item>
 
-        <Form.Item label="优先级（多选）" name="priorities">
+        <Form.Item label={t('field_priorities')} name="priorities">
           <Select mode="multiple" options={priorityOptions} placeholder="选择最重要的1-2项" />
         </Form.Item>
 
-        <Form.Item label="环境/安规" name="environment">
+        <Form.Item label={t('field_environment')} name="environment">
           <Input.TextArea rows={2} placeholder="例如：室温/户外/EMC要求/电池设备" />
         </Form.Item>
 
-        <Form.Item label="元件偏好/禁用" name="preferences">
+        <Form.Item label={t('field_preferences')} name="preferences">
           <Input.TextArea rows={2} placeholder="例如：优先贴片0805、禁用某型号等" />
         </Form.Item>
 
         <Divider />
 
-        <Form.Item label="验收标准" name="acceptanceCriteria">
+        <Form.Item label={t('field_acceptance_criteria')} name="acceptanceCriteria">
           <Input.TextArea rows={3} placeholder="例如：纹波≤X，效率≥Y，成本≤Z" />
         </Form.Item>
       </Form>
 
       <Divider />
       <div className="text-xs text-gray-500">
-        <span>已确认项：</span>
+        <span>{t('confirmed_items')}：</span>
         <Space size={[4, 8]} wrap>
           {Object.entries(value).filter(([_, v]) => (Array.isArray(v) ? v.length > 0 : !!v)).map(([k]) => (
             <Tag key={k} color="blue">{k}</Tag>
@@ -118,7 +120,7 @@ const RequirementCardSidebar: React.FC<RequirementCardSidebarProps> = ({ visible
 
       <Divider />
       <div>
-        <div className="text-sm text-gray-700 mb-2">下一步建议</div>
+        <div className="text-sm text-gray-700 mb-2">{t('suggestions_title')}</div>
         <List
           size="small"
           dataSource={suggestions}
@@ -129,7 +131,7 @@ const RequirementCardSidebar: React.FC<RequirementCardSidebarProps> = ({ visible
 
       <Divider />
       <div>
-        <div className="text-sm text-gray-700 mb-2">风险清单</div>
+        <div className="text-sm text-gray-700 mb-2">{t('risks_title')}</div>
         <List
           size="small"
           dataSource={risks}
@@ -140,7 +142,7 @@ const RequirementCardSidebar: React.FC<RequirementCardSidebarProps> = ({ visible
 
       <Divider />
       <div>
-        <div className="text-sm text-gray-700 mb-2">变更单</div>
+        <div className="text-sm text-gray-700 mb-2">{t('changes_title')}</div>
         <List
           size="small"
           dataSource={changes}

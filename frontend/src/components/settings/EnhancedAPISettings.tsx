@@ -45,6 +45,46 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
       responseFormat: 'openai'
     },
     {
+      value: 'doubao',
+      label: 'Doubao (Volcengine Ark)',
+      defaultUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+      keyExample: 'ark-xxx',
+      description: 'Doubao by Volcengine Ark (OpenAI-compatible chat/completions)',
+      models: ['doubao-seed-1-6-thinking-250715', 'doubao-pro-32k', 'doubao-lite'],
+      requestFormat: 'openai',
+      responseFormat: 'openai'
+    },
+    {
+      value: 'siliconflow',
+      label: 'SiliconFlow',
+      defaultUrl: 'https://api.siliconflow.cn/v1',
+      keyExample: 'sk-xxx',
+      description: 'SiliconFlow OpenAI-compatible endpoint',
+      models: ['deepseek-ai/DeepSeek-V2.5', 'Qwen/Qwen2.5-72B-Instruct'],
+      requestFormat: 'openai',
+      responseFormat: 'openai'
+    },
+    {
+      value: 'qwen',
+      label: 'Alibaba Tongyi Qwen',
+      defaultUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      keyExample: 'sk-xxx',
+      description: 'DashScope compatible-mode OpenAI APIs',
+      models: ['qwen-turbo', 'qwen-plus', 'qwen-long'],
+      requestFormat: 'openai',
+      responseFormat: 'openai'
+    },
+    {
+      value: 'perplexity',
+      label: 'Perplexity',
+      defaultUrl: 'https://api.perplexity.ai',
+      keyExample: 'pplx-xxx',
+      description: 'Perplexity OpenAI-compatible chat/completions',
+      models: ['pplx-70b-chat', 'pplx-7b-chat'],
+      requestFormat: 'openai',
+      responseFormat: 'openai'
+    },
+    {
       value: 'claude',
       label: 'Anthropic Claude',
       defaultUrl: 'https://api.anthropic.com',

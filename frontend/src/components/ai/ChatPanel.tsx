@@ -6,6 +6,7 @@ import { aiAPI } from '../../services/api'
 import EnhancedAPISettings from '../settings/EnhancedAPISettings'
 import StatusIndicator from '../common/StatusIndicator'
 import RequirementCardSidebar, { Requirements } from './RequirementCardSidebar'
+import { useI18n } from '../../i18n/I18nProvider'
 
 const { TextArea } = Input
 const { Option } = Select
@@ -111,12 +112,17 @@ const ChatPanel = ({
   })
   const [risks, setRisks] = useState<string[]>([])
   const [changes, setChanges] = useState<string[]>([])
+  const { t } = useI18n()
 
   const availableProviders = [
     { value: 'openai', label: 'OpenAI GPT', icon: '🤖' },
     { value: 'claude', label: 'Claude', icon: '🧠' },
     { value: 'gemini', label: 'Google Gemini', icon: '⭐' },
-    { value: 'custom', label: '自定义API', icon: '⚙️' }
+    { value: 'doubao', label: 'Doubao', icon: '🐯' },
+    { value: 'siliconflow', label: 'SiliconFlow', icon: '⚡' },
+    { value: 'qwen', label: 'Qwen', icon: '🌿' },
+    { value: 'perplexity', label: 'Perplexity', icon: '🔎' },
+    { value: 'custom', label: 'Custom API', icon: '⚙️' }
   ]
 
   const scrollToBottom = () => {
@@ -517,7 +523,7 @@ const ChatPanel = ({
         <div className="flex items-center gap-2">
           <RobotOutlined className="text-blue-500 text-lg" />
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">AI设计助手</h3>
+            <h3 className="text-lg font-semibold text-gray-800">{t('ai_assistant')}</h3>
             <StatusIndicator 
               model={availableProviders.find(p => p.value === selectedProvider)?.label || selectedProvider}
               isConfigured={apiConfigured}
@@ -537,40 +543,30 @@ const ChatPanel = ({
               </Option>
             ))}
           </Select>
-          <Button 
-            icon={<DownloadOutlined />} 
-            onClick={exportChat}
-            size="small"
-            type="text"
-            title="导出对话"
-          />
+          <Button icon={<DownloadOutlined />} onClick={exportChat} size="small" type="text" title={t('export_chat')} />
           <Button 
             icon={<ClearOutlined />} 
             onClick={clearChat}
             size="small"
             type="text"
-            title="清空对话"
+            title={t('clear_chat')}
           />
           <Button 
             icon={<SettingOutlined />} 
             onClick={() => setShowSettings(true)}
             size="small"
             type="text"
-            title="API设置"
+            title={t('api_settings')}
           />
           <Button 
             onClick={() => { autoExtractRequirementsFromConversation(); setSidebarVisible(true) }}
             size="small"
             type="primary"
-          >
-            需求卡片
-          </Button>
+          >{t('requirements_card')}</Button>
           <Button 
             onClick={handleGenerateDraft}
             size="small"
-          >
-            生成草案
-          </Button>
+          >{t('generate_draft')}</Button>
         </div>
       </div>
 
@@ -616,7 +612,7 @@ const ChatPanel = ({
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
-              <span className="text-sm text-gray-600">正在整理电路方案...</span>
+              <span className="text-sm text-gray-600">{t('typing_hint')}</span>
             </div>
           </div>
         )}
@@ -627,7 +623,7 @@ const ChatPanel = ({
       {/* 快捷操作 */}
       {messages.length <= 1 && (
         <div className="border-t p-4 bg-white">
-          <div className="text-sm text-gray-600 mb-3">💡 快速开始：</div>
+          <div className="text-sm text-gray-600 mb-3">💡 {t('quick_start')}：</div>
           <div className="flex flex-wrap gap-2">
             {quickActions.map((action, index) => (
               <Button
@@ -655,7 +651,7 @@ const ChatPanel = ({
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="描述您的电路设计需求..."
+            placeholder={t('input_placeholder')}
             rows={3}
             disabled={isLoading}
             className="flex-1"
@@ -667,7 +663,7 @@ const ChatPanel = ({
             disabled={!inputMessage.trim() || isLoading}
             className="h-20"
           >
-            发送
+            {t('generate_draft')}
           </Button>
         </div>
         <div className="text-xs text-gray-500 mt-2">

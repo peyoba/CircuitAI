@@ -74,6 +74,18 @@ export class AIService {
         case 'gemini':
           response = await this.callGemini(message, apiConfig, conversationHistory)
           break
+        case 'doubao':
+          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://ark.cn-beijing.volces.com/api/v3') + '/chat/completions' }, conversationHistory)
+          break
+        case 'siliconflow':
+          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://api.siliconflow.cn/v1') + '/chat/completions' }, conversationHistory)
+          break
+        case 'qwen':
+          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://dashscope.aliyuncs.com/compatible-mode/v1') + '/chat/completions' }, conversationHistory)
+          break
+        case 'perplexity':
+          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://api.perplexity.ai') + '/chat/completions' }, conversationHistory)
+          break
         case 'custom':
           response = await this.callCustomAPI(message, apiConfig, conversationHistory)
           break
@@ -321,8 +333,9 @@ export class AIService {
 
   private async callOpenAI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
     const { apiKey, model = 'gpt-3.5-turbo' } = config
-    
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const baseUrl = (config && config.apiUrl && config.apiUrl.startsWith('http')) ? config.apiUrl.replace(/\/$/, '') : 'https://api.openai.com/v1/chat/completions'
+
+    const response = await fetch(baseUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
