@@ -143,6 +143,7 @@ export class AIService {
       // 返回响应，包含会话ID
       return {
         ...response,
+        conversationId: conversationId,
         conversation_id: conversationId
       }
     } catch (error: any) {
@@ -333,9 +334,24 @@ export class AIService {
 
   private async callOpenAI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
     const { apiKey, model = 'gpt-3.5-turbo' } = config
-    const baseUrl = (config && config.apiUrl && config.apiUrl.startsWith('http')) ? config.apiUrl.replace(/\/$/, '') : 'https://api.openai.com/v1/chat/completions'
+    // 规范化 API 路径，确保指向 /v1/chat/completions
+    let base = (config && config.apiUrl && config.apiUrl.startsWith('http')) ? config.apiUrl.replace(/\/$/, '') : 'https://api.openai.com/v1'
+    let fullUrl = base
+    if (!/\/chat\/completions$/.test(base)) {
+      if (/\/v1$/.test(base)) {
+        fullUrl = `${base}/chat/completions`
+      } else if (/\/v1\/.+/.test(base)) {
+        // 已经包含 /v1/xxx 的完整路径
+        fullUrl = base
+      } else {
+        fullUrl = `${base}/v1/chat/completions`
+      }
+    }
 
-    const response = await fetch(baseUrl, {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+    const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -346,11 +362,15 @@ export class AIService {
         messages: this.buildOpenAIMessages(message, conversationHistory),
         max_tokens: 2000,
         temperature: 0.7
-      })
+      }),
+      signal: controller.signal
     })
 
+    clearTimeout(timeoutId)
+
     if (!response.ok) {
-      throw new Error(`OpenAI API调用失败: ${response.status} ${response.statusText}`)
+      const errText = await response.text()
+      throw new Error(`OpenAI API调用失败: ${response.status} ${response.statusText} - ${errText}`)
     }
 
     const data = await response.json()
