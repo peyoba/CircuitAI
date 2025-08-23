@@ -399,7 +399,7 @@ export class AIService {
   }
 
   private async callClaude(message: string, config: any) {
-    const { apiKey, model = 'claude-3-5-sonnet-20240620', apiUrl, customHeaders } = config
+    const { apiKey, model = 'claude-3-5-sonnet-20240620', apiUrl, customHeaders, authMode } = config
 
     // 归一化 Anthropic API 路径，默认 https://api.anthropic.com/v1/messages
     let base = (apiUrl && apiUrl.startsWith('http'))
@@ -419,16 +419,22 @@ export class AIService {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 45000) // 45s 超时
 
+    // 构建请求头：默认仅使用 Authorization: Bearer；如需 x-api-key 或 anthropic-version，请通过 customHeaders 传入，或设置 authMode='x-api-key'
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(customHeaders || {})
+    }
+    if (authMode === 'x-api-key' || headers['x-api-key']) {
+      headers['x-api-key'] = headers['x-api-key'] || apiKey
+      delete headers['Authorization']
+    } else {
+      headers['Authorization'] = headers['Authorization'] || `Bearer ${apiKey}`
+      delete headers['x-api-key']
+    }
+
     const response = await fetch(fullUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // 兼容两种鉴权方式：优先 x-api-key，其次 Authorization: Bearer
-        'x-api-key': apiKey,
-        'Authorization': `Bearer ${apiKey}`,
-        'anthropic-version': '2023-06-01',
-        ...(customHeaders || {})
-      },
+      headers,
       body: JSON.stringify({
         model,
         max_tokens: 2000,
