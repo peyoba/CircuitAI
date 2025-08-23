@@ -384,9 +384,27 @@ export class AIService {
   }
 
   private async callClaude(message: string, config: any) {
-    const { apiKey, model = 'claude-3-sonnet-20240229' } = config
-    
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const { apiKey, model = 'claude-3-5-sonnet-20240620' } = config
+
+    // 归一化 Anthropic API 路径，默认 https://api.anthropic.com/v1/messages
+    let base = (config && config.apiUrl && config.apiUrl.startsWith('http'))
+      ? config.apiUrl.replace(/\/$/, '')
+      : 'https://api.anthropic.com'
+    let fullUrl = base
+    if (!/\/v1\/messages$/.test(base)) {
+      if (/\/v1$/.test(base)) {
+        fullUrl = `${base}/messages`
+      } else if (/\/v1\/.+/.test(base)) {
+        fullUrl = base
+      } else {
+        fullUrl = `${base}/v1/messages`
+      }
+    }
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 45000) // 45s 超时
+
+    const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -396,26 +414,31 @@ export class AIService {
       body: JSON.stringify({
         model,
         max_tokens: 2000,
-        messages: [{ role: 'user', content: message }]
-      })
+        // 按 Anthropic Messages API 要求，content 使用块数组更稳妥
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: message }] }
+        ]
+      }),
+      signal: controller.signal
     })
 
+    clearTimeout(timeoutId)
+
     if (!response.ok) {
-      throw new Error(`Claude API调用失败: ${response.status} ${response.statusText}`)
+      const errText = await response.text()
+      throw new Error(`Claude API调用失败: ${response.status} ${response.statusText} - ${errText}`)
     }
 
     const data = await response.json()
-    const responseText = data.content[0].text
-    
-    // 提取电路数据和BOM数据
-    const { circuit_data, bom_data } = this.extractDataFromResponse(responseText)
+    // data.content 形如 [{type:'text', text:'...'}]
+    const responseText = Array.isArray(data.content) && data.content[0]
+      ? (data.content[0].text || '')
+      : ''
     
     return {
       response: responseText,
       conversation_id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      provider: 'claude',
-      circuit_data,
-      bom_data
+      provider: 'claude'
     }
   }
 
