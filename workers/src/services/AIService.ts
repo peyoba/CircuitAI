@@ -69,11 +69,19 @@ export class AIService {
           response = await this.callOpenAI(message, apiConfig, conversationHistory)
           break
         case 'claude':
-          // 如果是第三方聚合（非anthropic.com）或显式要求openai兼容格式，则走OpenAI兼容路径
-          if ((apiConfig?.requestFormat === 'openai') || (apiConfig?.apiUrl && !/anthropic\.com/i.test(apiConfig.apiUrl))) {
-            response = await this.callOpenAI(message, apiConfig, conversationHistory)
-          } else {
-            response = await this.callClaude(fullPrompt, apiConfig)
+          {
+            const requestFormat = apiConfig?.requestFormat
+            const apiUrl = apiConfig?.apiUrl || ''
+            const looksLikeClaudeEndpoint = /anthropic\.com/i.test(apiUrl) || /\/messages(\/?$)/i.test(apiUrl)
+
+            if (requestFormat === 'openai') {
+              response = await this.callOpenAI(message, apiConfig, conversationHistory)
+            } else if (requestFormat === 'claude' || looksLikeClaudeEndpoint) {
+              response = await this.callClaude(fullPrompt, apiConfig)
+            } else {
+              // 默认回退到OpenAI兼容
+              response = await this.callOpenAI(message, apiConfig, conversationHistory)
+            }
           }
           break
         case 'gemini':
@@ -391,11 +399,11 @@ export class AIService {
   }
 
   private async callClaude(message: string, config: any) {
-    const { apiKey, model = 'claude-3-5-sonnet-20240620' } = config
+    const { apiKey, model = 'claude-3-5-sonnet-20240620', apiUrl, customHeaders } = config
 
     // 归一化 Anthropic API 路径，默认 https://api.anthropic.com/v1/messages
-    let base = (config && config.apiUrl && config.apiUrl.startsWith('http'))
-      ? config.apiUrl.replace(/\/$/, '')
+    let base = (apiUrl && apiUrl.startsWith('http'))
+      ? apiUrl.replace(/\/$/, '')
       : 'https://api.anthropic.com'
     let fullUrl = base
     if (!/\/v1\/messages$/.test(base)) {
@@ -415,8 +423,11 @@ export class AIService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        // 兼容两种鉴权方式：优先 x-api-key，其次 Authorization: Bearer
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${apiKey}`,
+        'anthropic-version': '2023-06-01',
+        ...(customHeaders || {})
       },
       body: JSON.stringify({
         model,
