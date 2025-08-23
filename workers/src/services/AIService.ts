@@ -69,7 +69,12 @@ export class AIService {
           response = await this.callOpenAI(message, apiConfig, conversationHistory)
           break
         case 'claude':
-          response = await this.callClaude(fullPrompt, apiConfig)
+          // 如果是第三方聚合（非anthropic.com）或显式要求openai兼容格式，则走OpenAI兼容路径
+          if ((apiConfig?.requestFormat === 'openai') || (apiConfig?.apiUrl && !/anthropic\.com/i.test(apiConfig.apiUrl))) {
+            response = await this.callOpenAI(message, apiConfig, conversationHistory)
+          } else {
+            response = await this.callClaude(fullPrompt, apiConfig)
+          }
           break
         case 'gemini':
           response = await this.callGemini(message, apiConfig, conversationHistory)
@@ -229,7 +234,7 @@ export class AIService {
         throw new Error('Custom API配置为空，请设置API URL、密钥和模型')
       }
       
-      const { apiUrl, apiKey, model } = config
+      const { apiUrl, apiKey, model, customHeaders } = config
       
       console.log('🚀 Custom API调用开始:', { 
         hasConfig: !!config,
@@ -281,7 +286,8 @@ export class AIService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${apiKey}`,
+          ...(customHeaders || {})
         },
         body: JSON.stringify(requestBody),
         signal: controller.signal
@@ -333,7 +339,7 @@ export class AIService {
   }
 
   private async callOpenAI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
-    const { apiKey, model = 'gpt-3.5-turbo' } = config
+    const { apiKey, model = 'gpt-3.5-turbo', customHeaders } = config
     // 规范化 API 路径，确保指向 /v1/chat/completions
     let base = (config && config.apiUrl && config.apiUrl.startsWith('http')) ? config.apiUrl.replace(/\/$/, '') : 'https://api.openai.com/v1'
     let fullUrl = base
@@ -355,7 +361,8 @@ export class AIService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey}`,
+        ...(customHeaders || {})
       },
       body: JSON.stringify({
         model,
