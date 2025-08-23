@@ -112,7 +112,7 @@ const RequirementCardSidebar: React.FC<RequirementCardSidebarProps> = ({ visible
       <div className="text-xs text-gray-500">
         <span>{t('confirmed_items')}：</span>
         <Space size={[4, 8]} wrap>
-          {Object.entries(value).filter(([_, v]) => (Array.isArray(v) ? v.length > 0 : !!v)).map(([k]) => (
+          {Object.entries(value).filter(([, v]) => (Array.isArray(v) ? v.length > 0 : !!v)).map(([k]) => (
             <Tag key={k} color="blue">{k}</Tag>
           ))}
         </Space>

@@ -23,11 +23,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
-          antd: ['antd'],
+          // React 核心
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          // Ant Design 组件库
+          antd: ['antd', '@ant-design/icons'],
+          // 状态管理和工具
+          utils: ['zustand', 'axios'],
         },
       },
     },

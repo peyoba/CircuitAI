@@ -32,7 +32,7 @@ const api = axios.create({
 
 // 请求拦截器
 api.interceptors.request.use(
-  (config) => {
+  (config) => { 
     // 添加请求时间戳
     config.metadata = { startTime: new Date().getTime() }
     return config

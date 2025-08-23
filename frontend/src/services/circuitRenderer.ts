@@ -388,7 +388,6 @@ class CircuitRenderer {
     const lines = asciiDiagram.split('\n')
     
     let wireIndex = 0
-    let componentIndex = 0
 
     // 解析组件
     lines.forEach((line, lineIndex) => {
@@ -416,7 +415,6 @@ class CircuitRenderer {
             },
             symbol
           })
-          componentIndex++
         })
       }
     })

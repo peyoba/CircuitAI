@@ -71,7 +71,6 @@ const ChatPanel = ({
   useEffect(() => {
     // 初始化首条欢迎语（依赖语言）
     setMessages([{ id: '1', role: 'assistant', content: t('assistant_welcome'), timestamp: new Date() }])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -87,7 +86,6 @@ const ChatPanel = ({
       t('quick_action_opamp_amplifier'),
       t('quick_action_audio_amp')
     ])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t])
   const [currentApiConfig, setCurrentApiConfig] = useState<{
     provider: string
@@ -146,7 +144,9 @@ const ChatPanel = ({
       if (savedReq) setRequirements(JSON.parse(savedReq))
       if (savedRisks) setRisks(JSON.parse(savedRisks))
       if (savedChanges) setChanges(JSON.parse(savedChanges))
-    } catch {}
+    } catch (error) {
+      console.warn('Failed to load requirements:', error)
+    }
   }, [])
 
   useEffect(() => {
@@ -181,13 +181,25 @@ const ChatPanel = ({
 
   // 持久化需求卡片/风险/变更
   useEffect(() => {
-    try { localStorage.setItem('circuitsai_requirements', JSON.stringify(requirements)) } catch {}
+    try {
+      localStorage.setItem('circuitsai_requirements', JSON.stringify(requirements))
+    } catch (error) {
+      console.warn('Failed to save requirements:', error)
+    }
   }, [requirements])
   useEffect(() => {
-    try { localStorage.setItem('circuitsai_requirements_risks', JSON.stringify(risks)) } catch {}
+    try {
+      localStorage.setItem('circuitsai_requirements_risks', JSON.stringify(risks))
+    } catch (error) {
+      console.warn('Failed to save risks:', error)
+    }
   }, [risks])
   useEffect(() => {
-    try { localStorage.setItem('circuitsai_requirements_changes', JSON.stringify(changes)) } catch {}
+    try {
+      localStorage.setItem('circuitsai_requirements_changes', JSON.stringify(changes))
+    } catch (error) {
+      console.warn('Failed to save changes:', error)
+    }
   }, [changes])
 
   const extractFromText = (text: string) => {

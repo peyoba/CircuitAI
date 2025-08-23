@@ -27,7 +27,11 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setLang = (l: Language) => {
     setLangState(l)
-    try { localStorage.setItem('circuitsai_lang', l) } catch {}
+    try { 
+      localStorage.setItem('circuitsai_lang', l) 
+    } catch (error) {
+      console.warn('Failed to save language setting:', error)
+    }
   }
 
   const t = useMemo(() => {

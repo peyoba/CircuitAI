@@ -66,7 +66,7 @@ export class CustomAdapter extends BaseAPIAdapter {
             messages: formattedMessages
           }
           break
-        case 'custom':
+        case 'custom': {
           // 检查是否为SiliconFlow或其他需要messages格式的API
           const isSiliconFlow = this.config.apiUrl?.includes('siliconflow.cn')
           const isOpenAICompatible = this.config.apiUrl?.includes('openai.com') || isSiliconFlow
@@ -87,6 +87,7 @@ export class CustomAdapter extends BaseAPIAdapter {
             }
           }
           break
+        }
       }
     }
 
