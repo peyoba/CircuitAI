@@ -66,7 +66,13 @@ export class AIService {
       
       switch (provider) {
         case 'openai':
-          response = await this.callOpenAI(message, apiConfig, conversationHistory)
+          // 检查是否是自定义OpenAI API
+          if (apiConfig?.apiUrl && !apiConfig.apiUrl.includes('api.openai.com')) {
+            console.log('使用自定义OpenAI兼容API')
+            response = await this.callCustomAPI(message, apiConfig, conversationHistory)
+          } else {
+            response = await this.callOpenAI(message, apiConfig, conversationHistory)
+          }
           break
         case 'claude':
           {
@@ -74,21 +80,33 @@ export class AIService {
             const apiUrl = apiConfig?.apiUrl || ''
             const looksLikeClaudeEndpoint = /anthropic\.com/i.test(apiUrl) || /\/messages(\/?$)/i.test(apiUrl)
 
-            if (requestFormat === 'openai') {
-              response = await this.callOpenAI(message, apiConfig, conversationHistory)
-            } else if (requestFormat === 'claude' || looksLikeClaudeEndpoint) {
+            // 如果是标准Claude API，使用专门的Claude方法
+            if ((requestFormat === 'claude' || looksLikeClaudeEndpoint) && apiUrl.includes('anthropic.com')) {
               response = await this.callClaude(fullPrompt, apiConfig)
             } else {
-              // 默认回退到OpenAI兼容
-              response = await this.callOpenAI(message, apiConfig, conversationHistory)
+              // 否则使用通用的Custom API方法
+              console.log('Claude provider: 使用Custom API方法，URL:', apiUrl)
+              response = await this.callCustomAPI(message, apiConfig, conversationHistory)
             }
           }
           break
         case 'gemini':
-          response = await this.callGemini(message, apiConfig, conversationHistory)
+          // 检查是否是标准Gemini API
+          if (apiConfig?.apiUrl && apiConfig.apiUrl.includes('generativelanguage.googleapis.com')) {
+            response = await this.callGemini(message, apiConfig, conversationHistory)
+          } else {
+            console.log('Gemini provider: 使用Custom API方法，URL:', apiConfig?.apiUrl)
+            response = await this.callCustomAPI(message, apiConfig, conversationHistory)
+          }
           break
         case 'doubao':
-          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://ark.cn-beijing.volces.com/api/v3') + '/chat/completions' }, conversationHistory)
+          // 检查是否是标准豆包API
+          if (apiConfig?.apiUrl && (apiConfig.apiUrl.includes('volces.com') || apiConfig.apiUrl.includes('ark.cn'))) {
+            response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://ark.cn-beijing.volces.com/api/v3') + '/chat/completions' }, conversationHistory)
+          } else {
+            console.log('Doubao provider: 使用Custom API方法，URL:', apiConfig?.apiUrl)
+            response = await this.callCustomAPI(message, apiConfig, conversationHistory)
+          }
           break
         case 'siliconflow':
           response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://api.siliconflow.cn/v1') + '/chat/completions' }, conversationHistory)
