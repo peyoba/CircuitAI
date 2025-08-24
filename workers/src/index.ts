@@ -119,38 +119,6 @@ app.post('/api/ai/test-config', async (c) => {
   }
 })
 
-// 获取支持的AI提供商列表
-app.get('/api/ai/providers', (c) => {
-  const providers = [
-    { name: 'OpenAI Compatible', key: 'openai', available: true },
-    { name: 'Anthropic Claude', key: 'claude', available: true },
-    { name: 'Google Gemini', key: 'gemini', available: true },
-    { name: 'Doubao', key: 'doubao', available: true },
-    { name: 'SiliconFlow', key: 'siliconflow', available: true },
-    { name: 'Qwen', key: 'qwen', available: true },
-    { name: 'Perplexity', key: 'perplexity', available: true },
-    { name: 'Custom (OpenAI-compatible)', key: 'custom', available: true }
-  ]
-
-  return c.json({ success: true, data: providers })
-})
-
-// 获取可用模型列表示例（静态占位，实际应根据provider拉取）
-app.get('/api/ai/models', (c) => {
-  const available_models = [
-    { id: 'gpt-4o', name: 'GPT-4o', status: 'available' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', status: 'available' },
-    { id: 'claude-3-5-sonnet-20240620', name: 'Claude 3.5 Sonnet', status: 'available' },
-    { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', status: 'available' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', status: 'available' },
-    { id: 'doubao-pro-32k', name: 'Doubao Pro 32k', status: 'available' },
-    { id: 'qwen-plus', name: 'Qwen Plus', status: 'available' },
-    { id: 'pplx-70b-online', name: 'Perplexity 70B Online', status: 'available' }
-  ]
-
-  return c.json({ available_models })
-})
-
 // 404处理
 app.notFound((c) => {
   return c.json({
