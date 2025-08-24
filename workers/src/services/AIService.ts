@@ -28,6 +28,65 @@ export class AIService {
       console.log(`清理旧对话历史: ${oldestKey}`)
     }
   }
+
+  // 判断用户输入是否需要电路设计
+  private isCircuitDesignQuery(message: string): boolean {
+    const lowerMessage = message.toLowerCase()
+    
+    // 首先检查是否是简单的问候或日常对话
+    const casualPatterns = [
+      /^(hi|hello|你好|在吗|嗨|哈喽)[\s\?！。]*$/i,
+      /^(how are you|你好吗|最近怎么样)[\s\?！。]*$/i,
+      /^(thank you|thanks|谢谢|谢了)[\s\?！。]*$/i,
+      /^(bye|goodbye|再见|拜拜)[\s\?！。]*$/i,
+      /^(ok|好的|明白|收到)[\s\?！。]*$/i,
+      /^(what('s| is) (your name|this)|这是什么|你是谁)[\s\?！。]*$/i
+    ]
+
+    // 如果是简单问候，返回false（不需要电路设计）
+    if (casualPatterns.some(pattern => pattern.test(message))) {
+      return false
+    }
+
+    // 检查是否包含电路设计相关关键词
+    const circuitKeywords = [
+      '电路', '设计', '原理图', '电阻', '电容', '电感', '二极管', '三极管', 
+      'led', 'circuit', 'resistor', 'capacitor', 'diode', 'transistor',
+      '稳压', '放大器', '滤波器', '振荡器', '电源', '功率', '电压', '电流',
+      'regulator', 'amplifier', 'filter', 'oscillator', 'power', 'voltage', 'current',
+      '运放', 'ic', '芯片', '单片机', 'mcu', 'arduino', 'esp32',
+      'bom', '物料', '元件', 'component', '焊接', 'pcb', 'sch'
+    ]
+
+    // 检查是否包含电路设计相关的词汇
+    const hasCircuitKeywords = circuitKeywords.some(keyword => 
+      lowerMessage.includes(keyword.toLowerCase())
+    )
+
+    // 如果包含电路关键词，认为需要电路设计
+    if (hasCircuitKeywords) {
+      return true
+    }
+
+    // 检查是否是问题格式（包含疑问词）
+    const questionPatterns = [
+      /[？\?]/, // 包含问号
+      /^(什么|怎么|如何|为什么|when|what|how|why|where|which|can|could|should|would)/,
+      /(吗|呢|吧)[\s\?！。]*$/,
+      /^(请|帮|help|please)/
+    ]
+
+    const isQuestion = questionPatterns.some(pattern => pattern.test(lowerMessage))
+    
+    // 如果是问题但不包含电路关键词，可能是一般性询问
+    if (isQuestion && message.length > 10) {
+      // 长问题但没有电路关键词，可能仍然是技术相关
+      return true
+    }
+
+    // 默认情况，短消息且不包含明确关键词的视为一般对话
+    return message.length > 20
+  }
   
   async chat(message: string, conversationId: string, provider: string, apiConfig: any) {
     try {
@@ -47,6 +106,13 @@ export class AIService {
         role: 'user',
         content: message
       })
+      
+      // 判断是否需要电路设计
+      const needsCircuitDesign = this.isCircuitDesignQuery(message)
+      console.log('=== AI Service Debug ===')
+      console.log('User message:', message)
+      console.log('Needs circuit design:', needsCircuitDesign)
+      console.log('========================')
       
       // 限制历史消息数量，避免token过多
       if (conversationHistory.length > 20) {
@@ -69,9 +135,9 @@ export class AIService {
           // 检查是否是自定义OpenAI API
           if (apiConfig?.apiUrl && !apiConfig.apiUrl.includes('api.openai.com')) {
             console.log('使用自定义OpenAI兼容API')
-            response = await this.callCustomAPI(message, apiConfig, conversationHistory)
+            response = await this.callCustomAPI(message, apiConfig, conversationHistory, needsCircuitDesign)
           } else {
-            response = await this.callOpenAI(message, apiConfig, conversationHistory)
+            response = await this.callOpenAI(message, apiConfig, conversationHistory, needsCircuitDesign)
           }
           break
         case 'claude':
@@ -86,17 +152,17 @@ export class AIService {
             } else {
               // 否则使用通用的Custom API方法
               console.log('Claude provider: 使用Custom API方法，URL:', apiUrl)
-              response = await this.callCustomAPI(message, apiConfig, conversationHistory)
+              response = await this.callCustomAPI(message, apiConfig, conversationHistory, needsCircuitDesign)
             }
           }
           break
         case 'gemini':
           // 检查是否是标准Gemini API
           if (apiConfig?.apiUrl && apiConfig.apiUrl.includes('generativelanguage.googleapis.com')) {
-            response = await this.callGemini(message, apiConfig, conversationHistory)
+            response = await this.callGemini(message, apiConfig, conversationHistory, needsCircuitDesign)
           } else {
             console.log('Gemini provider: 使用Custom API方法，URL:', apiConfig?.apiUrl)
-            response = await this.callCustomAPI(message, apiConfig, conversationHistory)
+            response = await this.callCustomAPI(message, apiConfig, conversationHistory, needsCircuitDesign)
           }
           break
         case 'doubao':
@@ -253,7 +319,7 @@ export class AIService {
     }
   }
 
-  private async callCustomAPI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
+  private async callCustomAPI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>, needsCircuitDesign?: boolean) {
     try {
       // 首先检查config是否存在
       if (!config) {
@@ -364,7 +430,7 @@ export class AIService {
     }
   }
 
-  private async callOpenAI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
+  private async callOpenAI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>, needsCircuitDesign?: boolean) {
     const { apiKey, model = 'gpt-3.5-turbo', customHeaders } = config
     // 规范化 API 路径，确保指向 /v1/chat/completions
     let base = (config && config.apiUrl && config.apiUrl.startsWith('http')) ? config.apiUrl.replace(/\/$/, '') : 'https://api.openai.com/v1'
@@ -392,7 +458,7 @@ export class AIService {
       },
       body: JSON.stringify({
         model,
-        messages: this.buildOpenAIMessages(message, conversationHistory),
+        messages: this.buildOpenAIMessages(message, conversationHistory, needsCircuitDesign),
         max_tokens: 2000,
         temperature: 0.7
       }),
@@ -484,7 +550,7 @@ export class AIService {
     }
   }
 
-  private async callGemini(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>) {
+  private async callGemini(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>, needsCircuitDesign?: boolean) {
     try {
     const { apiKey, model = 'gemini-pro' } = config
     
@@ -506,8 +572,8 @@ export class AIService {
       const isFirstMessage = !conversationHistory || conversationHistory.length === 1 // 只有当前用户消息
       
       if (isFirstMessage) {
-        // 首次对话，使用完整的系统提示词
-        const systemPrompt = this.buildCircuitDesignPrompt(message)
+        // 首次对话，使用智能选择的系统提示词
+        const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign || true)
         contents.push({
           role: 'user',
           parts: [{ text: systemPrompt }]
@@ -1458,8 +1524,91 @@ export class AIService {
     return null
   }
   
+  // 🔥 新增：根据对话类型构建不同的提示词
+  private buildSmartPrompt(userMessage: string, needsCircuitDesign: boolean): string {
+    if (needsCircuitDesign) {
+      return this.buildCircuitDesignPrompt(userMessage)
+    } else {
+      return this.buildGeneralChatPrompt(userMessage)
+    }
+  }
+
+  // 🔥 新增：一般对话提示词
+  private buildGeneralChatPrompt(userMessage: string): string {
+    return `你是CircuitsAI的智能助手。请自然地回答用户的问题：${userMessage}
+
+## 回复格式要求：
+对于复杂问题，请按以下格式输出让用户看到你的思考过程：
+
+<thinking>
+1. 理解问题：理解用户真正想问什么
+2. 分析思路：思考回答的角度和重点  
+3. 组织回答：如何清晰地表达答案
+</thinking>
+
+然后给出友好的回答。对于简单问候和日常对话，可以直接回答无需显示思考过程。`
+  }
+
   // 🔥 优化：构建更专业的电路设计提示词，确保结构化输出
   private buildCircuitDesignPrompt(userMessage: string): string {
+    return `你是专业的硬件电路设计工程师。请为用户需求提供完整的电路设计方案：${userMessage}
+
+## 回复格式要求：
+首先显示你的思考过程：
+
+<thinking>
+1. 需求分析：分析用户具体需要什么功能
+2. 技术选型：选择合适的电路拓扑和关键元件
+3. 参数计算：计算关键元件参数和电路性能
+4. 优化考虑：考虑成本、性能、可靠性等因素
+</thinking>
+
+然后按照以下格式输出完整的电路设计方案：
+
+**严格按照以下格式输出，确保每个部分都完整：**
+
+## 电路设计说明
+**设计原理：** [详细说明电路工作原理]
+**计算方法：** [提供关键参数计算过程和公式]
+**元件选型：** [说明主要元件的选择理由和规格要求]
+**设计注意事项：** [列出设计和调试的关键要点]
+
+## ASCII电路图
+\`\`\`
+[绘制清晰的ASCII电路图，标明所有元件和连接，例如：
+     VCC
+      |
+     [R1]
+      |
+     LED1
+      |
+     GND
+]
+\`\`\`
+
+## 元件列表
+| 位号 | 类型 | 型号/规格 | 参数值 | 封装 | 说明 |
+|------|------|-----------|--------|------|------|
+| R1   | 电阻 | 1/4W 5%   | 330Ω  | 0805 | 限流电阻 |
+| LED1 | LED  | 标准LED   | 红色   | 3mm  | 指示灯 |
+
+## 连接关系
+| 序号 | 起始元件 | 起始引脚 | 目标元件 | 目标引脚 | 连接说明 |
+|------|----------|----------|----------|----------|----------|
+| 1    | VCC      | +        | R1       | 1        | 电源正极连接 |
+| 2    | R1       | 2        | LED1     | +        | 限流后连接LED |
+
+## 物料清单(BOM)
+| 序号 | 名称 | 型号 | 位号 | 数量 | 单价(元) | 备注 |
+|------|------|------|------|------|----------|------|
+| 1    | 电阻 | 330Ω/1/4W | R1 | 1 | 0.05 | 限流电阻 |
+| 2    | LED  | 红色3mm    | LED1 | 1 | 0.15 | 指示灯 |
+
+请确保输出内容专业、详细、准确，包含所有必要的技术信息。`
+  }
+
+  // 🔥 优化：构建更专业的电路设计提示词，确保结构化输出
+  private buildCircuitDesignPromptOld(userMessage: string): string {
     return `你是专业的硬件电路设计工程师。请为用户需求提供完整的电路设计方案：${userMessage}
 
 **严格按照以下格式输出，确保每个部分都完整：**
@@ -1506,9 +1655,10 @@ export class AIService {
 
   // 构建包含历史的提示词
   private buildPromptWithHistory(currentMessage: string, history: Array<{role: string, content: string}>): string {
-    // 如果是第一条消息，使用完整的系统提示词
+    // 如果是第一条消息，使用智能选择的系统提示词
     if (history.length <= 1) {
-      return this.buildCircuitDesignPrompt(currentMessage)
+      const needsCircuitDesign = this.isCircuitDesignQuery(currentMessage)
+      return this.buildSmartPrompt(currentMessage, needsCircuitDesign)
     }
 
     // 构建简化的上下文提示词，包含历史对话
@@ -1552,8 +1702,8 @@ ${currentMessage}
     const isFirstMessage = !conversationHistory || conversationHistory.length <= 1
     
     if (isFirstMessage) {
-      // 首次对话，使用完整的系统提示词
-      const systemPrompt = this.buildCircuitDesignPrompt(message)
+      // 首次对话，使用智能选择的系统提示词
+      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign || true)
       messages.push({ role: 'user', content: systemPrompt })
       console.log('Custom API: 使用完整系统提示词 - 首次对话')
     } else {
@@ -1584,12 +1734,12 @@ ${currentMessage}
   }
 
   // 构建OpenAI消息格式
-  private buildOpenAIMessages(message: string, conversationHistory?: Array<{role: string, content: string}>) {
+  private buildOpenAIMessages(message: string, conversationHistory?: Array<{role: string, content: string}>, needsCircuitDesign?: boolean) {
     const messages: any[] = []
     
-    // 如果是第一条消息，添加系统提示词
+    // 如果是第一条消息，添加智能选择的系统提示词
     if (!conversationHistory || conversationHistory.length <= 1) {
-      const systemPrompt = this.buildCircuitDesignPrompt(message)
+      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign || true)
       messages.push({ role: 'user', content: systemPrompt })
     } else {
       // 添加系统指导
