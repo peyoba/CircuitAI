@@ -25,6 +25,14 @@ const APISettings = ({ visible, onClose, onSave }: APISettingsProps) => {
 
   const providers = [
     {
+      value: 'deepseek',
+      label: 'DeepSeek (硅基流动)',
+      defaultUrl: 'https://api.siliconflow.cn/v1',
+      keyExample: 'sk-...',
+      modelExamples: ['deepseek-chat', 'deepseek-coder'],
+      description: '硅基流动提供的DeepSeek模型，高性价比'
+    },
+    {
       value: 'openai',
       label: 'OpenAI',
       defaultUrl: 'https://api.openai.com/v1',
@@ -176,9 +184,9 @@ const APISettings = ({ visible, onClose, onSave }: APISettingsProps) => {
         form={form}
         layout="vertical"
         initialValues={{
-          provider: 'openai',
-          model: 'gpt-4',
-          apiUrl: 'https://api.openai.com/v1'
+          provider: 'deepseek',
+          model: 'deepseek-chat',
+          apiUrl: 'https://api.siliconflow.cn/v1'
         }}
       >
         <Alert

@@ -77,7 +77,9 @@ export class APIAdapterFactory {
             }],
             generationConfig: {
               temperature: data.temperature || 0.7,
-              maxOutputTokens: data.max_tokens || 2000
+              maxOutputTokens: Math.min(data.max_tokens || 1500, 1500), // 限制最大输出token
+              topK: 1,
+              topP: 0.8
             }
           }),
           customResponseTransform: (response) => ({
@@ -112,7 +114,7 @@ export class APIAdapterFactory {
       case 'deepseek':
         adapter = new DeepSeekAdapter({
           apiKey: config.apiKey,
-          apiUrl: config.apiUrl || 'https://api.deepseek.com',
+          apiUrl: config.apiUrl || 'https://api.siliconflow.cn/v1',
           model: config.model || 'deepseek-chat',
           maxTokens: config.maxTokens,
           temperature: config.temperature
@@ -184,9 +186,9 @@ export class APIAdapterFactory {
       },
       {
         id: 'deepseek',
-        name: 'DeepSeek (国内)',
-        defaultUrl: 'https://api.deepseek.com',
-        description: '深度求索AI，国内可访问'
+        name: 'DeepSeek (硅基流动)',
+        defaultUrl: 'https://api.siliconflow.cn/v1',
+        description: '硅基流动提供的DeepSeek模型，高性价比'
       },
       {
         id: 'moonshot',

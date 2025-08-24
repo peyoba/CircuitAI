@@ -179,16 +179,44 @@ export class CustomAdapter extends BaseAPIAdapter {
     // 特殊处理Gemini API响应
     if (response.candidates && response.candidates.length > 0) {
       const candidate = response.candidates[0]
+      
+      // 检查是否有停止原因或错误
+      if (candidate.finishReason === 'MAX_TOKENS') {
+        throw new Error('输出超过最大长度限制，请简化问题或降低输出要求')
+      }
+      
+      if (candidate.finishReason === 'SAFETY') {
+        throw new Error('内容被安全过滤器拦截，请修改问题内容')
+      }
+      
       if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+        const text = candidate.content.parts[0].text
+        if (!text || text.trim().length === 0) {
+          throw new Error('AI返回了空的回答，请重新尝试或简化问题')
+        }
         return {
-          content: candidate.content.parts[0].text,
+          content: text,
           usage: response.usageMetadata ? {
             promptTokens: response.usageMetadata.promptTokenCount || 0,
             completionTokens: response.usageMetadata.candidatesTokenCount || 0,
             totalTokens: response.usageMetadata.totalTokenCount || 0
           } : undefined
         }
+      } else {
+        // 候选答案为空或没有parts
+        const reason = candidate.finishReason || 'UNKNOWN'
+        throw new Error(`Gemini API返回parts为空，原因: ${reason}`)
       }
+    }
+
+    // 检查是否有错误信息
+    if (response.error) {
+      throw new Error(`Gemini API错误: ${response.error.message || response.error}`)
+    }
+
+    // 如果没有候选答案
+    if (!response.candidates || response.candidates.length === 0) {
+      throw new Error('Gemini API没有返回任何回答候选')
     }
 
     switch (this.customConfig.responseFormat) {

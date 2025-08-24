@@ -128,11 +128,17 @@ export class AIService {
       }
       this.conversationManager.addMessage(conversationId, assistantMessage)
 
-      // 检查是否包含电路设计内容
-      const circuitData = await this.extractCircuitData(aiResponse)
-      const bomData = await this.extractBOMData(aiResponse)
+      // 只在电路设计相关的对话中提取电路数据
+      const isCircuitQuery = this.isCircuitDesignQuery(request.message)
+      let circuitData: CircuitData | null = null
+      let bomData: BOMData | null = null
+      
+      if (isCircuitQuery) {
+        circuitData = await this.extractCircuitData(aiResponse)
+        bomData = await this.extractBOMData(aiResponse)
+      }
 
-      logger.info(`AI response generated for provider: ${request.provider}, conversation: ${conversationId}`)
+      logger.info(`AI response generated for provider: ${request.provider}, conversation: ${conversationId}, circuit design: ${isCircuitQuery}`)
 
       return {
         content: aiResponse,
@@ -150,31 +156,53 @@ export class AIService {
   private async callAPI(adapter: BaseAPIAdapter, messages: ChatMessage[], context?: ConversationContext): Promise<string> {
     const template = PromptTemplates.getCircuitDesignTemplate()
     
-    // 构建API消息格式
-    const apiMessages: APIMessage[] = [
-      { role: 'system', content: template.system }
-    ]
-
-    // 检查是否是电源设计相关的查询
+    // 检查当前消息是否需要电路设计
     const latestMessage = messages[messages.length - 1]?.content || ''
-    const lowerMessage = latestMessage.toLowerCase()
+    const needsCircuitDesign = this.isCircuitDesignQuery(latestMessage)
     
-    if ((lowerMessage.includes('电源') || lowerMessage.includes('稳压') || 
-         lowerMessage.includes('5v') || lowerMessage.includes('3.3v') || 
-         lowerMessage.includes('转换') || lowerMessage.includes('ldo')) && 
-        (lowerMessage.includes('设计') || lowerMessage.includes('电路'))) {
-      // 添加电源设计专用提示词
-      apiMessages.push({
-        role: 'system',
-        content: PromptTemplates.getPowerSupplyDesignPrompt()
-      })
-    }
+    // 构建API消息格式
+    const apiMessages: APIMessage[] = []
+    
+    if (needsCircuitDesign) {
+      // 电路设计相关的查询，使用专业提示词
+      apiMessages.push({ role: 'system', content: template.system })
+      
+      // 检查是否是电源设计相关的查询
+      const lowerMessage = latestMessage.toLowerCase()
+      if ((lowerMessage.includes('电源') || lowerMessage.includes('稳压') || 
+           lowerMessage.includes('5v') || lowerMessage.includes('3.3v') || 
+           lowerMessage.includes('转换') || lowerMessage.includes('ldo')) && 
+          (lowerMessage.includes('设计') || lowerMessage.includes('电路'))) {
+        // 添加电源设计专用提示词
+        apiMessages.push({
+          role: 'system',
+          content: PromptTemplates.getPowerSupplyDesignPrompt()
+        })
+      }
 
-    // 根据上下文添加阶段特定的提示
-    if (context?.phase) {
-      apiMessages.push({
-        role: 'system',
-        content: template.phases[context.phase]
+      // 根据上下文添加阶段特定的提示
+      if (context?.phase) {
+        apiMessages.push({
+          role: 'system',
+          content: template.phases[context.phase]
+        })
+      }
+    } else {
+      // 一般对话，使用简单的助手提示词，也包含思考过程
+      apiMessages.push({ 
+        role: 'system', 
+        content: `你是CircuitsAI的智能助手。请自然地回答用户的问题。
+
+## 回复格式要求：
+对于复杂问题，请按以下格式输出让用户看到你的思考过程：
+
+<thinking>
+1. 理解问题：理解用户真正想问什么
+2. 分析思路：思考回答的角度和重点
+3. 组织回答：如何清晰地表达答案
+</thinking>
+
+然后给出友好的回答。对于简单问候和日常对话，可以直接回答无需显示思考过程。` 
       })
     }
 
@@ -186,10 +214,119 @@ export class AIService {
       })
     })
 
-    return await adapter.chat(apiMessages, {
-      temperature: 0.7,
-      maxTokens: 2000
-    })
+    // 智能重试机制 - 如果遇到token限制错误，使用更少的token重试
+    const maxRetries = 2
+    let attempt = 0
+    
+    while (attempt <= maxRetries) {
+      try {
+        let maxTokens = needsCircuitDesign ? 2000 : 500
+        let temperature = needsCircuitDesign ? 0.7 : 0.9
+        
+        // 根据重试次数调整参数
+        if (attempt > 0) {
+          maxTokens = Math.max(500, maxTokens - (attempt * 500)) // 每次重试减少500 token
+          // 对于Gemini API，进一步限制
+          if (adapter.constructor.name === 'CustomAdapter' && 
+              (adapter as any).config?.apiUrl?.includes('generativelanguage.googleapis.com')) {
+            maxTokens = Math.min(maxTokens, 1000) // Gemini最多1000 tokens
+          }
+          
+          // 在重试时使用更简洁的提示词
+          if (needsCircuitDesign && attempt >= 1) {
+            apiMessages[0] = {
+              role: 'system',
+              content: `你是电路设计专家。请简洁回答用户的电路设计问题，直接提供核心方案，避免过长的解释。重点包括：基本电路、关键元件参数、连接方式。`
+            }
+            // 移除额外的提示词以节省token
+            if (apiMessages.length > 2) {
+              apiMessages.splice(1, apiMessages.length - 2)
+            }
+          }
+        }
+
+        return await adapter.chat(apiMessages, {
+          temperature,
+          maxTokens
+        })
+      } catch (error: any) {
+        const errorMessage = error.message || ''
+        const isTokenError = errorMessage.includes('MAX_TOKENS') || 
+                           errorMessage.includes('输出超过最大长度') ||
+                           errorMessage.includes('token limit')
+
+        if (isTokenError && attempt < maxRetries) {
+          attempt++
+          console.log(`Token limit exceeded, retrying with attempt ${attempt}...`)
+          continue // 重试
+        }
+        
+        // 如果不是token错误或已达最大重试次数，抛出错误
+        throw error
+      }
+    }
+
+    throw new Error('重试次数已达上限，请简化问题或使用其他AI提供商')
+  }
+
+  // 判断用户输入是否需要电路设计
+  private isCircuitDesignQuery(message: string): boolean {
+    const lowerMessage = message.toLowerCase()
+    
+    // 首先检查是否是简单的问候或日常对话
+    const casualPatterns = [
+      /^(hi|hello|你好|在吗|嗨|哈喽)[\s\?！。]*$/i,
+      /^(how are you|你好吗|最近怎么样)[\s\?！。]*$/i,
+      /^(thank you|thanks|谢谢|谢了)[\s\?！。]*$/i,
+      /^(bye|goodbye|再见|拜拜)[\s\?！。]*$/i,
+      /^(ok|好的|明白|收到)[\s\?！。]*$/i,
+      /^(what('s| is) (your name|this)|这是什么|你是谁)[\s\?！。]*$/i
+    ]
+
+    // 如果是简单问候，返回false（不需要电路设计）
+    if (casualPatterns.some(pattern => pattern.test(message))) {
+      return false
+    }
+
+    // 检查是否包含电路设计相关关键词
+    const circuitKeywords = [
+      '电路', '设计', '原理图', '电阻', '电容', '电感', '二极管', '三极管', 
+      'led', 'circuit', 'resistor', 'capacitor', 'diode', 'transistor',
+      '稳压', '放大器', '滤波器', '振荡器', '电源', '功率', '电压', '电流',
+      'regulator', 'amplifier', 'filter', 'oscillator', 'power', 'voltage', 'current',
+      '运放', 'ic', '芯片', '单片机', 'mcu', 'arduino', 'esp32',
+      'bom', '物料', '元件', 'component', '焊接', 'pcb', 'sch',
+      '需要', '帮我', '想要', '如何', '怎么', 'help', 'how to', 'need', 'want'
+    ]
+
+    // 检查是否包含电路设计相关的词汇
+    const hasCircuitKeywords = circuitKeywords.some(keyword => 
+      lowerMessage.includes(keyword.toLowerCase())
+    )
+
+    // 如果包含电路关键词，认为需要电路设计
+    if (hasCircuitKeywords) {
+      return true
+    }
+
+    // 检查是否是问题格式（包含疑问词）
+    const questionPatterns = [
+      /[？\?]/, // 包含问号
+      /^(什么|怎么|如何|为什么|when|what|how|why|where|which|can|could|should|would)/,
+      /(吗|呢|吧)[\s\?！。]*$/,
+      /^(请|帮|help|please)/
+    ]
+
+    const isQuestion = questionPatterns.some(pattern => pattern.test(lowerMessage))
+    
+    // 如果是问题但不包含电路关键词，可能是一般性询问
+    if (isQuestion && message.length > 10) {
+      // 长问题但没有电路关键词，可能仍然是技术相关
+      return true
+    }
+
+    // 默认情况，短消息且不包含明确关键词的视为一般对话
+    return message.length > 20
   }
 
   private getEnvironmentAdapter(provider: string): BaseAPIAdapter | null {

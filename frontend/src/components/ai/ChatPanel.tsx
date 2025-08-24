@@ -78,6 +78,9 @@ const ChatPanel = ({
   const [showSettings, setShowSettings] = useState(false)
   const [apiConfigured, setApiConfigured] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
+  const [thinkingProgress, setThinkingProgress] = useState(0) // 新增：思考进度
+  const [thinkingSteps, setThinkingSteps] = useState<string[]>([]) // 新增：思考步骤数组
+  const [currentThinkingIndex, setCurrentThinkingIndex] = useState(0) // 新增：当前思考步骤索引
   const [quickActions, setQuickActions] = useState<string[]>([])
   useEffect(() => {
     setQuickActions([
@@ -325,6 +328,35 @@ const ChatPanel = ({
     setRequirements(next)
   }
 
+  // 解析AI返回内容中的思考过程
+  const parseThinkingProcess = (content: string): { thinking: string[], mainContent: string } => {
+    const thinkingMatch = content.match(/<thinking>([\s\S]*?)<\/thinking>/i)
+    if (!thinkingMatch) {
+      return { thinking: [], mainContent: content }
+    }
+    
+    const thinkingText = thinkingMatch[1].trim()
+    const thinking = thinkingText
+      .split(/\d+\.\s*/)
+      .filter(step => step.trim())
+      .map(step => step.trim())
+    
+    const mainContent = content.replace(/<thinking>[\s\S]*?<\/thinking>/i, '').trim()
+    return { thinking, mainContent }
+  }
+
+  // 分步显示思考过程
+  const displayThinkingSteps = async (steps: string[]): Promise<void> => {
+    setThinkingSteps(steps)
+    setCurrentThinkingIndex(0)
+    
+    for (let i = 0; i < steps.length; i++) {
+      setCurrentThinkingIndex(i)
+      setThinkingProgress((i + 1) / steps.length * 100)
+      await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400))
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
 
@@ -352,21 +384,33 @@ const ChatPanel = ({
         apiConfig: currentApiConfig || undefined
       })
 
-      // 更新会话ID (兼容不同字段名)
+      // 更新会话ID
       if (response.data.conversationId) {
         conversationId.current = response.data.conversationId
       }
       
-      // 模拟打字效果
+      // 解析AI返回的内容，提取思考过程
+      const { thinking, mainContent } = parseThinkingProcess(response.data.response)
+      
+      // 如果有思考过程，先显示思考步骤
+      if (thinking.length > 0) {
+        await displayThinkingSteps(thinking)
+      }
+      
+      // 清除思考状态，开始显示最终答案
+      setThinkingProgress(0)
+      setThinkingSteps([])
+      setCurrentThinkingIndex(0)
       setIsTyping(true)
+      
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.data.response,
+        content: mainContent || response.data.response, // 使用解析后的内容或原内容
         timestamp: new Date()
       }
 
-      // 添加短暂延迟模拟真实对话
+      // 添加短暂延迟模拟打字效果
       setTimeout(() => {
         setMessages(prev => [...prev, assistantMessage])
         setIsTyping(false)
@@ -392,6 +436,12 @@ const ChatPanel = ({
 
     } catch (error: unknown) {
       console.error('发送消息失败:', error)
+      
+      // 清除思考状态
+      setThinkingProgress(0)
+      setThinkingSteps([])
+      setCurrentThinkingIndex(0)
+      setIsTyping(false)
       
       let errorContent = '抱歉，我现在无法回复。'
       
@@ -427,6 +477,9 @@ const ChatPanel = ({
       message.error(errorContent)
     } finally {
       setIsLoading(false)
+      setThinkingProgress(0)
+      setThinkingSteps([])
+      setCurrentThinkingIndex(0)
     }
   }
 
@@ -617,8 +670,64 @@ const ChatPanel = ({
         {isLoading && (
           <div className="flex gap-3">
             <Avatar icon={<RobotOutlined />} className="bg-green-500" />
-            <div className="bg-gray-100 p-3 rounded-lg">
-              <Spin size="small" /> 正在分析您的需求...
+            <div className="bg-gray-100 p-3 rounded-lg min-w-[200px] max-w-[80%]">
+              {thinkingSteps.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold text-gray-800 mb-2">
+                    🤔 AI思考过程：
+                  </div>
+                  
+                  {/* 显示所有思考步骤 */}
+                  {thinkingSteps.map((step, index) => (
+                    <div 
+                      key={index}
+                      className={`flex items-start gap-2 p-2 rounded ${
+                        index < currentThinkingIndex 
+                          ? 'bg-green-50 border border-green-200' 
+                          : index === currentThinkingIndex 
+                          ? 'bg-blue-50 border border-blue-200' 
+                          : 'bg-gray-50 opacity-50'
+                      }`}
+                    >
+                      <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                        index < currentThinkingIndex 
+                          ? 'bg-green-500 text-white' 
+                          : index === currentThinkingIndex 
+                          ? 'bg-blue-500 text-white animate-pulse' 
+                          : 'bg-gray-300 text-gray-500'
+                      }`}>
+                        {index < currentThinkingIndex ? '✓' : index + 1}
+                      </div>
+                      <div className={`text-sm flex-1 ${
+                        index <= currentThinkingIndex ? 'text-gray-700' : 'text-gray-400'
+                      }`}>
+                        {step}
+                        {index === currentThinkingIndex && (
+                          <Spin size="small" className="ml-2" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* 进度条 */}
+                  <div className="mt-3">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${thinkingProgress}%` }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 text-center">
+                      思考中... {Math.round(thinkingProgress)}%
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Spin size="small" />
+                  <span className="text-sm text-gray-700">正在分析您的需求...</span>
+                </div>
+              )}
             </div>
           </div>
         )}
