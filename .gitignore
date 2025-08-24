@@ -71,3 +71,6 @@ uploads/
 # 特定于项目的忽略
 /backend/logs/
 /frontend/.vite/
+
+# Cloudflare Wrangler 临时文件
+/workers/.wrangler/
