@@ -31,21 +31,27 @@ export class AIService {
 
   // 判断用户输入是否需要电路设计
   private isCircuitDesignQuery(message: string): boolean {
-    const lowerMessage = message.toLowerCase()
+    const lowerMessage = message.toLowerCase().trim()
     
     // 首先检查是否是简单的问候或日常对话
     const casualPatterns = [
-      /^(hi|hello|你好|在吗|嗨|哈喽)[\s\?！。]*$/i,
-      /^(how are you|你好吗|最近怎么样)[\s\?！。]*$/i,
-      /^(thank you|thanks|谢谢|谢了)[\s\?！。]*$/i,
-      /^(bye|goodbye|再见|拜拜)[\s\?！。]*$/i,
-      /^(ok|好的|明白|收到)[\s\?！。]*$/i,
-      /^(what('s| is) (your name|this)|这是什么|你是谁)[\s\?！。]*$/i
+      /^(hi|hello|你好|在吗|嗨|哈喽)$/i,
+      /^(how are you|你好吗|最近怎么样)$/i,
+      /^(thank you|thanks|谢谢|谢了)$/i,
+      /^(bye|goodbye|再见|拜拜)$/i,
+      /^(ok|好的|明白|收到)$/i,
+      /^(what('s| is) (your name|this)|这是什么|你是谁)$/i
     ]
 
+    console.log('检查消息:', message)
+    console.log('标准化后:', lowerMessage)
+    
     // 如果是简单问候，返回false（不需要电路设计）
-    if (casualPatterns.some(pattern => pattern.test(message))) {
-      return false
+    for (const pattern of casualPatterns) {
+      if (pattern.test(lowerMessage)) {
+        console.log('匹配到问候模式:', pattern)
+        return false
+      }
     }
 
     // 检查是否包含电路设计相关关键词
@@ -65,6 +71,7 @@ export class AIService {
 
     // 如果包含电路关键词，认为需要电路设计
     if (hasCircuitKeywords) {
+      console.log('检测到电路关键词，判断为电路设计')
       return true
     }
 
@@ -80,12 +87,13 @@ export class AIService {
     
     // 如果是问题但不包含电路关键词，可能是一般性询问
     if (isQuestion && message.length > 10) {
-      // 长问题但没有电路关键词，可能仍然是技术相关
+      console.log('检测为长问题，可能是技术相关')
       return true
     }
 
     // 默认情况，短消息且不包含明确关键词的视为一般对话
-    return message.length > 20
+    console.log('默认判断为一般对话，消息长度:', message.length)
+    return false  // 修改：默认为一般对话
   }
   
   async chat(message: string, conversationId: string, provider: string, apiConfig: any) {
@@ -573,7 +581,7 @@ export class AIService {
       
       if (isFirstMessage) {
         // 首次对话，使用智能选择的系统提示词
-        const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign || true)
+        const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign === true)
         contents.push({
           role: 'user',
           parts: [{ text: systemPrompt }]
@@ -1703,7 +1711,7 @@ ${currentMessage}
     
     if (isFirstMessage) {
       // 首次对话，使用智能选择的系统提示词
-      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign || true)
+      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign === true)
       messages.push({ role: 'user', content: systemPrompt })
       console.log('Custom API: 使用完整系统提示词 - 首次对话')
     } else {
@@ -1739,7 +1747,7 @@ ${currentMessage}
     
     // 如果是第一条消息，添加智能选择的系统提示词
     if (!conversationHistory || conversationHistory.length <= 1) {
-      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign || true)
+      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign === true)
       messages.push({ role: 'user', content: systemPrompt })
     } else {
       // 添加系统指导

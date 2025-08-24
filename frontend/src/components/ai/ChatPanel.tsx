@@ -74,7 +74,7 @@ const ChatPanel = ({
   }, [t])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedProvider, setSelectedProvider] = useState('openai')
+  const [selectedProvider, setSelectedProvider] = useState('deepseek')
   const [showSettings, setShowSettings] = useState(false)
   const [apiConfigured, setApiConfigured] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
@@ -161,7 +161,7 @@ const ChatPanel = ({
         console.log('加载的API配置:', config)
         setCurrentApiConfig(config)
         setApiConfigured(!!config.apiKey)
-        setSelectedProvider(config.provider || 'openai')
+        setSelectedProvider(config.provider || 'deepseek')  // 修改默认值为deepseek
       } catch (error) {
         console.error('Failed to load API config:', error)
       }

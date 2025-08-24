@@ -31,7 +31,8 @@ app.get('/api/health', (c) => {
     data: {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      environment: 'cloudflare-workers'
+      environment: 'cloudflare-workers',
+      version: '智能对话判断已部署 v1.1'  // 添加版本信息
     }
   })
 })

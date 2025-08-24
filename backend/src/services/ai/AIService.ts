@@ -160,6 +160,12 @@ export class AIService {
     const latestMessage = messages[messages.length - 1]?.content || ''
     const needsCircuitDesign = this.isCircuitDesignQuery(latestMessage)
     
+    // 调试日志
+    console.log('=== AI Service Debug ===')
+    console.log('User message:', latestMessage)
+    console.log('Needs circuit design:', needsCircuitDesign)
+    console.log('========================')
+    
     // 构建API消息格式
     const apiMessages: APIMessage[] = []
     
@@ -295,8 +301,7 @@ export class AIService {
       '稳压', '放大器', '滤波器', '振荡器', '电源', '功率', '电压', '电流',
       'regulator', 'amplifier', 'filter', 'oscillator', 'power', 'voltage', 'current',
       '运放', 'ic', '芯片', '单片机', 'mcu', 'arduino', 'esp32',
-      'bom', '物料', '元件', 'component', '焊接', 'pcb', 'sch',
-      '需要', '帮我', '想要', '如何', '怎么', 'help', 'how to', 'need', 'want'
+      'bom', '物料', '元件', 'component', '焊接', 'pcb', 'sch'
     ]
 
     // 检查是否包含电路设计相关的词汇
