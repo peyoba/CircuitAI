@@ -122,9 +122,9 @@ export class AIService {
       console.log('Needs circuit design:', needsCircuitDesign)
       console.log('========================')
       
-      // 限制历史消息数量，避免token过多
-      if (conversationHistory.length > 20) {
-        conversationHistory.splice(0, conversationHistory.length - 20)
+      // 限制历史消息数量，避免token过多 - Gemini需要更严格的限制
+      if (conversationHistory.length > 12) {  // 从20减少到12
+        conversationHistory.splice(0, conversationHistory.length - 12)
       }
       
       // 构建包含历史的完整消息 (仅某些provider需要)
@@ -600,8 +600,8 @@ export class AIService {
         // 后续对话，包含历史记录
         console.log('使用对话历史 - 后续对话，历史长度:', conversationHistory.length)
         
-        // 添加对话历史（最近6轮对话，排除当前消息）
-        const recentHistory = conversationHistory.slice(-13, -1) // 排除最后一条(当前)消息
+        // 添加对话历史（最近4轮对话，排除当前消息）
+        const recentHistory = conversationHistory.slice(-9, -1) // 排除最后一条(当前)消息
         
         // 如果有历史，先添加一个简化的上下文提示
         if (recentHistory.length > 0) {
@@ -610,17 +610,20 @@ export class AIService {
             parts: [{ text: '你是专业的硬件电路设计专家。基于我们之前的对话，请继续为我提供专业的技术支持。' }]
           })
           
-          // 添加历史对话
-          for (const msg of recentHistory) {
+          // 只添加最近的4轮对话，并且缩短内容长度
+          const limitedHistory = recentHistory.slice(-8) // 最多8条消息（4轮对话）
+          for (const msg of limitedHistory) {
             if (msg.role === 'user') {
               contents.push({
                 role: 'user',
-                parts: [{ text: msg.content }]
+                parts: [{ text: msg.content.length > 200 ? msg.content.substring(0, 200) + '...' : msg.content }]
               })
             } else if (msg.role === 'assistant') {
+              // 助手回复只保留前150字符
+              const shortContent = msg.content.length > 150 ? msg.content.substring(0, 150) + '...' : msg.content
               contents.push({
                 role: 'model',
-                parts: [{ text: msg.content }]
+                parts: [{ text: shortContent }]
               })
             }
           }
@@ -639,7 +642,8 @@ export class AIService {
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 4096
+          maxOutputTokens: 2048, // 减少输出token限制
+          candidateCount: 1 // 只生成一个候选响应
         },
         safetySettings: [
           {
@@ -1566,26 +1570,24 @@ export class AIService {
 然后给出友好的回答。对于简单问候和日常对话，可以直接回答无需显示思考过程。`
   }
 
-  // 🔥 优化：构建更专业的电路设计提示词，确保结构化输出
+  // 🔥 优化：构建更简洁的电路设计提示词
   private buildCircuitDesignPrompt(userMessage: string): string {
     return `你是专业的硬件电路设计工程师。请为用户需求提供电路设计方案：${userMessage}
 
 ## 回复格式要求：
-首先显示你的思考过程：
+显示思考过程：
 
 <thinking>
 1. 需求分析：用户具体需要什么功能
-2. 技术选型：选择合适的电路拓扑和关键元件
+2. 技术选型：选择合适的电路方案
 3. 参数计算：计算关键元件参数
-4. 优化考虑：考虑成本、性能、可靠性
 </thinking>
 
-然后输出电路设计方案：
+然后输出电路设计：
 
-## 电路设计说明
+## 电路说明
 **设计原理：** [电路工作原理]
-**计算方法：** [关键参数计算]
-**元件选型：** [主要元件选择理由]
+**关键计算：** [主要参数计算]
 
 ## ASCII电路图
 \`\`\`
@@ -1610,7 +1612,7 @@ export class AIService {
 |------|------|------|------|----------|------|
 | 1    | 电阻 | 330Ω | 1 | 0.05 | 限流电阻 |
 
-请确保输出内容专业、简洁、准确。`
+请确保回复简洁实用。`
   }
 
   // 🔥 优化：构建更专业的电路设计提示词，确保结构化输出
@@ -1723,12 +1725,13 @@ ${currentMessage}
         content: '你是CircuitAI的专业硬件电路设计工程师。基于对话历史，继续为用户提供专业的电路设计服务。请保持回复的专业性和连贯性。' 
       })
       
-      // 添加最近的对话历史（最近8轮对话，排除当前消息）
-      const recentHistory = conversationHistory.slice(-9, -1) // 排除最后一条(当前)消息
+      // 添加最近的对话历史（最近6条消息，减少token使用）
+      const recentHistory = conversationHistory.slice(-7, -1) // 排除最后一条(当前)消息
       for (const msg of recentHistory) {
         messages.push({ 
           role: msg.role === 'assistant' ? 'assistant' : 'user', 
-          content: msg.content 
+          // 限制每条历史消息的长度以节省token
+          content: msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content 
         })
       }
       
@@ -1756,13 +1759,14 @@ ${currentMessage}
         content: '你是CircuitsAI的资深硬件电路设计总工程师。基于对话历史，继续提供专业的电路设计服务。' 
       })
       
-      // 添加对话历史（最近8条消息）
-      const recentHistory = conversationHistory.slice(-8)
+      // 添加对话历史（最近6条消息，减少token使用）
+      const recentHistory = conversationHistory.slice(-6)
       for (let i = 0; i < recentHistory.length - 1; i++) { // 排除当前消息
         const msg = recentHistory[i]
         messages.push({ 
           role: msg.role === 'assistant' ? 'assistant' : 'user', 
-          content: msg.content 
+          // 限制每条历史消息的长度以节省token
+          content: msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content
         })
       }
       
