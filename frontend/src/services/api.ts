@@ -24,11 +24,61 @@ const getApiBaseUrl = () => {
 // 创建axios实例
 const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 120000, // 增加到2分钟，AI回复需要更多时间
+  timeout: 60000, // 1分钟超时，更合理
   headers: {
     'Content-Type': 'application/json'
   }
 })
+
+// 创建AI专用的axios实例，支持更长的超时时间
+const aiApi = axios.create({
+  baseURL: getApiBaseUrl(),
+  timeout: 120000, // AI请求2分钟超时
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+
+// AI专用请求拦截器
+aiApi.interceptors.request.use(
+  (config) => { 
+    // 添加请求时间戳
+    config.metadata = { startTime: new Date().getTime() }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// AI专用响应拦截器，增强错误处理
+aiApi.interceptors.response.use(
+  (response: AxiosResponse) => {
+    // 计算请求耗时
+    const endTime = new Date().getTime()
+    const duration = endTime - (response.config.metadata?.startTime || endTime)
+    console.log(`AI API请求耗时: ${duration}ms`)
+    
+    return response
+  },
+  (error) => {
+    // AI专用错误处理
+    const { response } = error
+    
+    if (response) {
+      const { status, data } = response
+      
+      // 不在这里显示message，让上层处理
+      console.error(`AI API错误 [${status}]:`, data?.error || response.statusText)
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('AI API请求超时')
+    } else {
+      console.error('AI API网络错误:', error.message)
+    }
+    
+    return Promise.reject(error)
+  }
+)
 
 // 请求拦截器
 api.interceptors.request.use(
@@ -170,15 +220,32 @@ export interface AIModel {
 
 // AI对话API
 export const aiAPI = {
-  // 发送聊天消息
+  // 发送聊天消息，使用AI专用实例和增强错误处理
   async chat(request: ChatRequest): Promise<ChatResponse> {
-    const response = await api.post<ChatResponse>('/ai/chat', {
-      message: request.message,
-      conversation_id: request.conversationId,
-      provider: request.provider || 'openai',
-      apiConfig: request.apiConfig
-    })
-    return response.data
+    try {
+      const response = await aiApi.post<ChatResponse>('/ai/chat', {
+        message: request.message,
+        conversation_id: request.conversationId,
+        provider: request.provider || 'openai',
+        apiConfig: request.apiConfig
+      })
+      return response.data
+    } catch (error: any) {
+      // 增强错误处理，提供更友好的错误消息
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('AI响应超时，请稍后重试或检查网络连接')
+      } else if (error.response?.status === 500) {
+        const errorMsg = error.response?.data?.error || '服务器内部错误'
+        throw new Error(`AI服务暂时不可用：${errorMsg}`)
+      } else if (error.response?.status === 429) {
+        throw new Error('请求过于频繁，请稍等片刻后再试')
+      } else if (error.response?.status >= 400 && error.response?.status < 500) {
+        const errorMsg = error.response?.data?.error || '请求参数错误'
+        throw new Error(`${errorMsg}`)
+      } else {
+        throw new Error('网络连接失败，请检查网络或稍后重试')
+      }
+    }
   },
 
 

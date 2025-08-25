@@ -330,12 +330,17 @@ const ChatPanel = ({
 
   // 解析AI返回内容中的思考过程
   const parseThinkingProcess = (content: string): { thinking: string[], mainContent: string } => {
+    // 确保 content 是字符串类型
+    if (!content || typeof content !== 'string') {
+      return { thinking: [], mainContent: content || '' }
+    }
+    
     const thinkingMatch = content.match(/<thinking>([\s\S]*?)<\/thinking>/i)
     if (!thinkingMatch) {
       return { thinking: [], mainContent: content }
     }
     
-    const thinkingText = thinkingMatch[1].trim()
+    const thinkingText = thinkingMatch[1]?.trim() || ''
     const thinking = thinkingText
       .split(/\d+\.\s*/)
       .filter(step => step.trim())
@@ -390,7 +395,8 @@ const ChatPanel = ({
       }
       
       // 解析AI返回的内容，提取思考过程
-      const { thinking, mainContent } = parseThinkingProcess(response.data.response)
+      const responseContent = response?.data?.response || ''
+      const { thinking, mainContent } = parseThinkingProcess(responseContent)
       
       // 如果有思考过程，先显示思考步骤
       if (thinking.length > 0) {
@@ -406,7 +412,7 @@ const ChatPanel = ({
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: mainContent || response.data.response, // 使用解析后的内容或原内容
+        content: mainContent || responseContent, // 使用解析后的内容或原内容
         timestamp: new Date()
       }
 
@@ -414,7 +420,7 @@ const ChatPanel = ({
       setTimeout(() => {
         setMessages(prev => [...prev, assistantMessage])
         setIsTyping(false)
-        updateRequirementsFromAssistant(response.data.response || '')
+        updateRequirementsFromAssistant(responseContent)
       }, 500)
 
       // 检查是否包含电路图或BOM数据，添加调试日志
@@ -444,25 +450,47 @@ const ChatPanel = ({
       setIsTyping(false)
       
       let errorContent = '抱歉，我现在无法回复。'
+      let shouldShowApiSettings = false
       
       // 根据错误类型提供更具体的错误信息
-      const err = error as { 
-        response?: { status?: number; data?: { error?: string } }; 
-        code?: string; 
-        message?: string 
-      }
-      if (err?.response?.status === 401) {
-        errorContent = '❌ API密钥无效或未配置，请在设置中检查您的AI服务配置。'
-      } else if (err?.response?.status === 429) {
-        errorContent = '⏳ API请求频率过高，请稍等片刻后再试。'
-      } else if (err?.response?.status === 503) {
-        errorContent = '🔌 AI服务连接失败，请检查网络连接或API地址配置。'
-      } else if (err?.code === 'ECONNABORTED') {
-        errorContent = '⏱️ 请求超时，AI服务响应时间过长，请稍后重试。'
-      } else if (err?.message?.includes('Network Error')) {
-        errorContent = '🌐 网络连接错误，请检查您的网络连接。'
-      } else if (err?.response?.data?.error) {
-        errorContent = `❌ ${err.response.data.error}`
+      if (error instanceof Error) {
+        const errorMessage = error.message
+        
+        if (errorMessage.includes('AI响应超时')) {
+          errorContent = '⏱️ AI响应超时，可能是网络较慢或AI服务繁忙，请稍后重试。'
+        } else if (errorMessage.includes('AI服务暂时不可用')) {
+          errorContent = '🔧 AI服务暂时不可用，请检查API配置或稍后重试。'
+          shouldShowApiSettings = true
+        } else if (errorMessage.includes('请求过于频繁')) {
+          errorContent = '⏳ 请求过于频繁，请等待片刻后再试。'
+        } else if (errorMessage.includes('网络连接失败')) {
+          errorContent = '🌐 网络连接失败，请检查网络连接后重试。'
+        } else {
+          errorContent = `❌ ${errorMessage}`
+        }
+      } else {
+        // 处理传统的错误对象
+        const err = error as { 
+          response?: { status?: number; data?: { error?: string } }; 
+          code?: string; 
+          message?: string 
+        }
+        
+        if (err?.response?.status === 401) {
+          errorContent = '❌ API密钥无效或未配置，请在设置中检查您的AI服务配置。'
+          shouldShowApiSettings = true
+        } else if (err?.response?.status === 429) {
+          errorContent = '⏳ API请求频率过高，请稍等片刻后再试。'
+        } else if (err?.response?.status === 503) {
+          errorContent = '🔌 AI服务连接失败，请检查网络连接或API地址配置。'
+          shouldShowApiSettings = true
+        } else if (err?.code === 'ECONNABORTED') {
+          errorContent = '⏱️ 请求超时，AI服务响应时间过长，请稍后重试。'
+        } else if (err?.message?.includes('Network Error')) {
+          errorContent = '🌐 网络连接错误，请检查您的网络连接。'
+        } else if (err?.response?.data?.error) {
+          errorContent = `❌ ${err.response.data.error}`
+        }
       }
       
       const errorMessage: ChatMessage = {
@@ -475,6 +503,13 @@ const ChatPanel = ({
       
       // 显示错误提示
       message.error(errorContent)
+      
+      // 如果需要，自动打开API设置
+      if (shouldShowApiSettings && !apiConfigured) {
+        setTimeout(() => {
+          setShowSettings(true)
+        }, 1000)
+      }
     } finally {
       setIsLoading(false)
       setThinkingProgress(0)

@@ -176,23 +176,25 @@ export class AIService {
         case 'doubao':
           // 检查是否是标准豆包API
           if (apiConfig?.apiUrl && (apiConfig.apiUrl.includes('volces.com') || apiConfig.apiUrl.includes('ark.cn'))) {
-            response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://ark.cn-beijing.volces.com/api/v3') + '/chat/completions' }, conversationHistory)
+            response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://ark.cn-beijing.volces.com/api/v3') + '/chat/completions' }, conversationHistory, needsCircuitDesign)
           } else {
             console.log('Doubao provider: 使用Custom API方法，URL:', apiConfig?.apiUrl)
-            response = await this.callCustomAPI(message, apiConfig, conversationHistory)
+            response = await this.callCustomAPI(message, apiConfig, conversationHistory, needsCircuitDesign)
           }
           break
         case 'siliconflow':
-          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://api.siliconflow.cn/v1') + '/chat/completions' }, conversationHistory)
+          // SiliconFlow使用OpenAI兼容格式
+          console.log('SiliconFlow请求，原始配置:', apiConfig?.apiUrl)
+          response = await this.callOpenAI(message, apiConfig, conversationHistory, needsCircuitDesign)
           break
         case 'qwen':
-          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://dashscope.aliyuncs.com/compatible-mode/v1') + '/chat/completions' }, conversationHistory)
+          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://dashscope.aliyuncs.com/compatible-mode/v1') + '/chat/completions' }, conversationHistory, needsCircuitDesign)
           break
         case 'perplexity':
-          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://api.perplexity.ai') + '/chat/completions' }, conversationHistory)
+          response = await this.callOpenAI(message, { ...apiConfig, apiUrl: (apiConfig?.apiUrl || 'https://api.perplexity.ai') + '/chat/completions' }, conversationHistory, needsCircuitDesign)
           break
         case 'custom':
-          response = await this.callCustomAPI(message, apiConfig, conversationHistory)
+          response = await this.callCustomAPI(message, apiConfig, conversationHistory, needsCircuitDesign)
           break
         case 'mock':
           response = await this.mockResponse(message, conversationHistory)
@@ -440,6 +442,11 @@ export class AIService {
 
   private async callOpenAI(message: string, config: any, conversationHistory?: Array<{role: string, content: string}>, needsCircuitDesign?: boolean) {
     const { apiKey, model = 'gpt-3.5-turbo', customHeaders } = config
+    
+    console.log('callOpenAI 调试信息:')
+    console.log('- 配置:', { apiUrl: config?.apiUrl, model, hasApiKey: !!apiKey })
+    console.log('- needsCircuitDesign:', needsCircuitDesign)
+    
     // 规范化 API 路径，确保指向 /v1/chat/completions
     let base = (config && config.apiUrl && config.apiUrl.startsWith('http')) ? config.apiUrl.replace(/\/$/, '') : 'https://api.openai.com/v1'
     let fullUrl = base
@@ -453,6 +460,8 @@ export class AIService {
         fullUrl = `${base}/v1/chat/completions`
       }
     }
+
+    console.log('- 最终URL:', fullUrl)
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 30000)
@@ -1559,31 +1568,28 @@ export class AIService {
 
   // 🔥 优化：构建更专业的电路设计提示词，确保结构化输出
   private buildCircuitDesignPrompt(userMessage: string): string {
-    return `你是专业的硬件电路设计工程师。请为用户需求提供完整的电路设计方案：${userMessage}
+    return `你是专业的硬件电路设计工程师。请为用户需求提供电路设计方案：${userMessage}
 
 ## 回复格式要求：
 首先显示你的思考过程：
 
 <thinking>
-1. 需求分析：分析用户具体需要什么功能
+1. 需求分析：用户具体需要什么功能
 2. 技术选型：选择合适的电路拓扑和关键元件
-3. 参数计算：计算关键元件参数和电路性能
-4. 优化考虑：考虑成本、性能、可靠性等因素
+3. 参数计算：计算关键元件参数
+4. 优化考虑：考虑成本、性能、可靠性
 </thinking>
 
-然后按照以下格式输出完整的电路设计方案：
-
-**严格按照以下格式输出，确保每个部分都完整：**
+然后输出电路设计方案：
 
 ## 电路设计说明
-**设计原理：** [详细说明电路工作原理]
-**计算方法：** [提供关键参数计算过程和公式]
-**元件选型：** [说明主要元件的选择理由和规格要求]
-**设计注意事项：** [列出设计和调试的关键要点]
+**设计原理：** [电路工作原理]
+**计算方法：** [关键参数计算]
+**元件选型：** [主要元件选择理由]
 
 ## ASCII电路图
 \`\`\`
-[绘制清晰的ASCII电路图，标明所有元件和连接，例如：
+[绘制ASCII电路图，例如：
      VCC
       |
      [R1]
@@ -1595,24 +1601,16 @@ export class AIService {
 \`\`\`
 
 ## 元件列表
-| 位号 | 类型 | 型号/规格 | 参数值 | 封装 | 说明 |
-|------|------|-----------|--------|------|------|
-| R1   | 电阻 | 1/4W 5%   | 330Ω  | 0805 | 限流电阻 |
-| LED1 | LED  | 标准LED   | 红色   | 3mm  | 指示灯 |
+| 位号 | 类型 | 参数值 | 封装 | 说明 |
+|------|------|--------|------|------|
+| R1   | 电阻 | 330Ω  | 0805 | 限流电阻 |
 
-## 连接关系
-| 序号 | 起始元件 | 起始引脚 | 目标元件 | 目标引脚 | 连接说明 |
-|------|----------|----------|----------|----------|----------|
-| 1    | VCC      | +        | R1       | 1        | 电源正极连接 |
-| 2    | R1       | 2        | LED1     | +        | 限流后连接LED |
+## 物料清单(BOM)  
+| 序号 | 名称 | 型号 | 数量 | 单价(元) | 备注 |
+|------|------|------|------|----------|------|
+| 1    | 电阻 | 330Ω | 1 | 0.05 | 限流电阻 |
 
-## 物料清单(BOM)
-| 序号 | 名称 | 型号 | 位号 | 数量 | 单价(元) | 备注 |
-|------|------|------|------|------|----------|------|
-| 1    | 电阻 | 330Ω/1/4W | R1 | 1 | 0.05 | 限流电阻 |
-| 2    | LED  | 红色3mm    | LED1 | 1 | 0.15 | 指示灯 |
-
-请确保输出内容专业、详细、准确，包含所有必要的技术信息。`
+请确保输出内容专业、简洁、准确。`
   }
 
   // 🔥 优化：构建更专业的电路设计提示词，确保结构化输出
@@ -1711,7 +1709,8 @@ ${currentMessage}
     
     if (isFirstMessage) {
       // 首次对话，使用智能选择的系统提示词
-      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign === true)
+      const needsCircuitDesign = this.isCircuitDesignQuery(message)
+      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign)
       messages.push({ role: 'user', content: systemPrompt })
       console.log('Custom API: 使用完整系统提示词 - 首次对话')
     } else {
@@ -1747,7 +1746,8 @@ ${currentMessage}
     
     // 如果是第一条消息，添加智能选择的系统提示词
     if (!conversationHistory || conversationHistory.length <= 1) {
-      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign === true)
+      const needsDesign = needsCircuitDesign === true
+      const systemPrompt = this.buildSmartPrompt(message, needsDesign)
       messages.push({ role: 'user', content: systemPrompt })
     } else {
       // 添加系统指导
