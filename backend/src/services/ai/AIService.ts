@@ -294,14 +294,16 @@ export class AIService {
       return false
     }
 
-    // 检查是否包含电路设计相关关键词
+    // 检查是否包含电路设计相关关键词（扩展关键词列表）
     const circuitKeywords = [
       '电路', '设计', '原理图', '电阻', '电容', '电感', '二极管', '三极管', 
       'led', 'circuit', 'resistor', 'capacitor', 'diode', 'transistor',
       '稳压', '放大器', '滤波器', '振荡器', '电源', '功率', '电压', '电流',
       'regulator', 'amplifier', 'filter', 'oscillator', 'power', 'voltage', 'current',
       '运放', 'ic', '芯片', '单片机', 'mcu', 'arduino', 'esp32',
-      'bom', '物料', '元件', 'component', '焊接', 'pcb', 'sch'
+      'bom', '物料', '元件', 'component', '焊接', 'pcb', 'sch',
+      'ascii', '电路图', 'schematic', '原理', 'diagram', '接线', '连接',
+      'lm', 'ne555', '555', '开关', 'switch', '继电器', 'relay', '传感器'
     ]
 
     // 检查是否包含电路设计相关的词汇
@@ -326,12 +328,12 @@ export class AIService {
     
     // 如果是问题但不包含电路关键词，可能是一般性询问
     if (isQuestion && message.length > 10) {
-      // 长问题但没有电路关键词，可能仍然是技术相关
+      // 长问题但没有电路关键词，可能仍然是技术相关，更倾向于电路设计
       return true
     }
 
-    // 默认情况，短消息且不包含明确关键词的视为一般对话
-    return message.length > 20
+    // 如果消息较长且不是明显的日常对话，倾向于认为是技术询问
+    return message.length > 15
   }
 
   private getEnvironmentAdapter(provider: string): BaseAPIAdapter | null {
@@ -397,17 +399,21 @@ export class AIService {
   // 删除所有模拟响应方法 - 强制使用真实API
 
   private async extractCircuitData(content: string): Promise<CircuitData | null> {
-    // 检查是否包含ASCII电路图
+    console.log('=== extractCircuitData Debug ===')
+    console.log('Content preview:', content.substring(0, 500))
+    
+    // 1. 首先检查代码块中的ASCII电路图
     const codeBlockRegex = /```[\s\S]*?```/g
     const codeBlocks = content.match(codeBlockRegex)
     
     if (codeBlocks) {
       for (const block of codeBlocks) {
-        const cleanBlock = block.replace(/```/g, '').trim()
+        const cleanBlock = block.replace(/```[a-zA-Z]*\n?/g, '').replace(/```$/g, '').trim()
         if (this.isCircuitDiagram(cleanBlock)) {
+          console.log('Found circuit diagram in code block')
           return {
             ascii: cleanBlock,
-            description: '电路原理图',
+            description: this.extractDescription(content),
             components: this.circuitGenerator.extractComponents(cleanBlock),
             properties: this.circuitGenerator.extractProperties(content),
             connections: this.circuitGenerator.extractConnections(cleanBlock)
@@ -416,6 +422,35 @@ export class AIService {
       }
     }
     
+    // 2. 检查整个内容中的ASCII电路图（不在代码块中的）
+    if (this.isCircuitDiagram(content)) {
+      console.log('Found circuit diagram in full content')
+      return {
+        ascii: content,
+        description: this.extractDescription(content),
+        components: this.circuitGenerator.extractComponents(content),
+        properties: this.circuitGenerator.extractProperties(content),
+        connections: this.circuitGenerator.extractConnections(content)
+      }
+    }
+    
+    // 3. 如果AI响应了电路设计但没有明显的ASCII图，生成一个基础电路图
+    const hasCircuitTerms = this.hasCircuitDesignContent(content)
+    if (hasCircuitTerms) {
+      console.log('Found circuit design content, generating ASCII diagram')
+      const components = this.circuitGenerator.extractComponents(content)
+      const asciiDiagram = this.circuitGenerator.generateASCIICircuit(components, [])
+      
+      return {
+        ascii: asciiDiagram,
+        description: this.extractDescription(content),
+        components: components,
+        properties: this.circuitGenerator.extractProperties(content),
+        connections: this.circuitGenerator.extractConnections(content)
+      }
+    }
+    
+    console.log('No circuit data found')
     return null
   }
 
@@ -446,12 +481,59 @@ export class AIService {
     const circuitPatterns = [
       /[+-]{2,}/, // 电源线
       /\[.*?\]/, // 元件符号
-      /VCC|GND|VDD|VSS/, // 电源标识
-      /----/, // 连接线
-      /R\d+|C\d+|L\d+|U\d+|D\d+/ // 元件标号
+      /VCC|GND|VDD|VSS/i, // 电源标识
+      /[-]{3,}/, // 连接线
+      /R\d+|C\d+|L\d+|U\d+|D\d+|LED\d*/, // 元件标号
+      /电路.*?图|原理.*?图|schematic/i, // 电路图标识
+      /\|[\s\S]*\|/, // 可能的表格形式电路图
+      /┌|─|└|├|┤|┬|┴|┼/, // 表格边框字符
+      /\+[\s]*[-]+[\s]*\+/, // ASCII表格边框
     ]
     
-    return circuitPatterns.some(pattern => pattern.test(text))
+    // 至少匹配两个模式才认为是电路图
+    const matchCount = circuitPatterns.filter(pattern => pattern.test(text)).length
+    return matchCount >= 2
+  }
+
+  private hasCircuitDesignContent(content: string): boolean {
+    const circuitContentPatterns = [
+      /电路.*?设计/i,
+      /原理.*?图/i,
+      /元件.*?选择/i,
+      /电阻.*?\d+/i,
+      /电容.*?\d+/i,
+      /稳压.*?电路/i,
+      /放大.*?电路/i,
+      /滤波.*?电路/i,
+      /BOM|物料.*?清单/i,
+      /R\d+.*?\d+.*?Ω/i,
+      /C\d+.*?\d+.*?(μF|nF|pF)/i,
+      /U\d+.*?LM\d+/i,
+      /电源.*?\d+.*?V/i,
+      /电流.*?\d+.*?(mA|A)/i
+    ]
+    
+    return circuitContentPatterns.some(pattern => pattern.test(content))
+  }
+
+  private extractDescription(content: string): string {
+    // 提取描述信息，优先查找"描述"、"说明"等关键词后的内容
+    const descriptionPatterns = [
+      /描述[:：]\s*([^。\n]+)/,
+      /说明[:：]\s*([^。\n]+)/,
+      /原理[:：]\s*([^。\n]+)/,
+      /功能[:：]\s*([^。\n]+)/
+    ]
+    
+    for (const pattern of descriptionPatterns) {
+      const match = content.match(pattern)
+      if (match) {
+        return match[1].trim()
+      }
+    }
+    
+    // 如果没有找到明确的描述，返回默认描述
+    return '电路原理图'
   }
 
   async validateApiKey(provider: string, apiKey: string, apiUrl?: string): Promise<boolean> {

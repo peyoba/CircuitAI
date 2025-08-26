@@ -344,12 +344,12 @@ export class CircuitGenerator {
   }
 
   generateASCIICircuit(components: ComponentInfo[], _connections: Connection[]): string {
-    // 简单的ASCII电路图生成逻辑
-    // 这是一个基础实现，可以根据需求扩展
+    // 根据实际检测到的元件生成更合适的ASCII电路图
     
-    let diagram = `
+    if (components.length === 0) {
+      return `
 电路原理图：
-    
+
 VCC ----+----[R1]----+----[LED1]---- GND
         |            |
        [C1]         [R2]
@@ -357,10 +357,89 @@ VCC ----+----[R1]----+----[LED1]---- GND
        GND          [LED2]---- GND
 
 元件说明：
+- R1: 限流电阻
+- LED1: 发光二极管
+- C1: 滤波电容
+- R2: 限流电阻
+- LED2: 发光二极管
+`.trim()
+    }
+
+    let diagram = `
+电路原理图：
+
 `
+
+    // 根据元件类型生成不同的电路拓扑
+    const hasLED = components.some(comp => comp.type === 'led')
+    const hasResistor = components.some(comp => comp.type === 'resistor')
+    const hasCapacitor = components.some(comp => comp.type === 'capacitor')
+    const hasIC = components.some(comp => comp.type === 'ic')
+
+    if (hasIC && hasCapacitor && hasResistor) {
+      // 运放电路
+      diagram += `
+VCC ----+----[R1]----+----[U1]----+---- Vout
+        |            |     |       |
+       [C1]          +----[-]     [R3]
+        |            |     |       |
+       GND          Vin   [+]     GND
+        |                  |
+        +------------------+
+`
+    } else if (hasLED && hasResistor) {
+      // LED驱动电路
+      const leds = components.filter(comp => comp.type === 'led')
+      const resistors = components.filter(comp => comp.type === 'resistor')
+      
+      if (leds.length > 1) {
+        diagram += `
+VCC ----+----[${resistors[0]?.reference || 'R1'}]----+----[${leds[0]?.reference || 'LED1'}]---- GND
+        |                  |
+        +----[${resistors[1]?.reference || 'R2'}]----+----[${leds[1]?.reference || 'LED2'}]---- GND
+`
+      } else {
+        diagram += `
+VCC ----[${resistors[0]?.reference || 'R1'}]----[${leds[0]?.reference || 'LED1'}]---- GND
+`
+      }
+    } else if (hasCapacitor && hasResistor) {
+      // RC滤波电路
+      diagram += `
+Vin ----[${components.find(c => c.type === 'resistor')?.reference || 'R1'}]----+---- Vout
+                                    |
+                                   [${components.find(c => c.type === 'capacitor')?.reference || 'C1'}]
+                                    |
+                                   GND
+`
+    } else {
+      // 通用电路
+      diagram += `VCC ----+`
+      
+      components.forEach((comp, index) => {
+        if (index === 0) {
+          diagram += `----[${comp.reference}]`
+        } else {
+          diagram += `----[${comp.reference}]`
+        }
+      })
+      
+      diagram += `---- GND\n`
+      
+      if (hasCapacitor) {
+        const cap = components.find(c => c.type === 'capacitor')
+        diagram += `        |\n       [${cap?.reference}]\n        |\n       GND\n`
+      }
+    }
+
+    diagram += `\n元件说明：\n`
     
     components.forEach(comp => {
-      diagram += `- ${comp.reference}: ${comp.name}\n`
+      let description = `- ${comp.reference}: ${comp.name}`
+      if (comp.value) {
+        description += ` (${comp.value})`
+      }
+      diagram += description + '\n'
     })
 
     return diagram.trim()
