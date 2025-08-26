@@ -602,8 +602,8 @@ export class AIService {
         // 后续对话，包含历史记录
         console.log('使用对话历史 - 后续对话，历史长度:', conversationHistory.length)
         
-        // 添加对话历史（最近4轮对话，排除当前消息）
-        const recentHistory = conversationHistory.slice(-9, -1) // 排除最后一条(当前)消息
+        // 添加对话历史（最近2轮对话，排除当前消息）
+        const recentHistory = conversationHistory.slice(-5, -1) // 排除最后一条(当前)消息，只保留最近2轮
         
         // 如果有历史，先添加一个简化的上下文提示
         if (recentHistory.length > 0) {
@@ -612,8 +612,8 @@ export class AIService {
             parts: [{ text: '你是专业的硬件电路设计专家。基于我们之前的对话，请继续为我提供专业的技术支持。' }]
           })
           
-          // 只添加最近的4轮对话，并且缩短内容长度
-          const limitedHistory = recentHistory.slice(-8) // 最多8条消息（4轮对话）
+          // 只添加最近的2轮对话，并且缩短内容长度
+          const limitedHistory = recentHistory.slice(-4) // 最多4条消息（2轮对话）
           for (const msg of limitedHistory) {
             if (msg.role === 'user') {
               contents.push({
@@ -644,7 +644,7 @@ export class AIService {
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 2048, // 减少输出token限制
+          maxOutputTokens: 1024, // 进一步减少输出token限制以避免MAX_TOKENS错误
           candidateCount: 1 // 只生成一个候选响应
         },
         safetySettings: [
@@ -1572,12 +1572,16 @@ export class AIService {
 然后给出友好的回答。对于简单问候和日常对话，可以直接回答无需显示思考过程。`
   }
 
-  // 🔥 优化：构建更简洁的电路设计提示词
+  // 🔥 优化：构建更简洁的电路设计提示词，避免token超限
   private buildCircuitDesignPrompt(userMessage: string): string {
-    return `你是专业的硬件电路设计工程师。请为用户需求提供电路设计方案：${userMessage}
+    return `你是电路设计专家。请提供电路方案：${userMessage}
 
-## 回复格式要求：
-显示思考过程：
+要求：
+1. 显示思考过程：<thinking>分析需求→选择方案→计算参数</thinking>
+2. 提供ASCII电路图（用代码块包围）
+3. 列出主要元件和参数
+4. 保持回答简洁专业`
+  }
 
 <thinking>
 1. 需求分析：用户具体需要什么功能
