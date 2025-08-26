@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare
+name: Deploy Frontend to Cloudflare Pages
 
 on:
   push:
@@ -33,11 +33,11 @@ jobs:
     - name: Build project
       run: npm run build
 
-  # 部署到Cloudflare Pages
+  # 部署前端到Cloudflare Pages (仅在main分支推送时)
   deploy-frontend:
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     
     steps:
     - name: Checkout code
@@ -63,29 +63,18 @@ jobs:
         projectName: circuitai
         directory: frontend/dist
         gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-
-  # 部署Workers
-  deploy-workers:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
         
-    - name: Install Wrangler
-      run: npm install -g wrangler
-      
-    - name: Deploy Workers
-      working-directory: ./workers
-      run: wrangler deploy
-      env:
-        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    - name: Add deployment comment
+      uses: actions/github-script@v6
+      if: github.event_name == 'push'
+      with:
+        script: |
+          github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.sha,
+            state: 'success',
+            target_url: 'https://circuitai.pages.dev',
+            description: 'Deployed to Cloudflare Pages',
+            context: 'deploy/cloudflare-pages'
+          })

@@ -35,12 +35,12 @@ export class AIService {
     
     // 首先检查是否是简单的问候或日常对话
     const casualPatterns = [
-      /^(hi|hello|你好|在吗|嗨|哈喽)$/i,
-      /^(how are you|你好吗|最近怎么样)$/i,
-      /^(thank you|thanks|谢谢|谢了)$/i,
-      /^(bye|goodbye|再见|拜拜)$/i,
-      /^(ok|好的|明白|收到)$/i,
-      /^(what('s| is) (your name|this)|这是什么|你是谁)$/i
+      /^(hi|hello|你好|在吗|嗨|哈喽)[\s\?！。]*$/i,
+      /^(how are you|你好吗|最近怎么样)[\s\?！。]*$/i,
+      /^(thank you|thanks|谢谢|谢了)[\s\?！。]*$/i,
+      /^(bye|goodbye|再见|拜拜)[\s\?！。]*$/i,
+      /^(ok|好的|明白|收到)[\s\?！。]*$/i,
+      /^(what('s| is) (your name|this)|这是什么|你是谁)[\s\?！。]*$/i
     ]
 
     console.log('检查消息:', message)
@@ -54,14 +54,16 @@ export class AIService {
       }
     }
 
-    // 检查是否包含电路设计相关关键词
+    // 检查是否包含电路设计相关关键词（扩展关键词列表）
     const circuitKeywords = [
       '电路', '设计', '原理图', '电阻', '电容', '电感', '二极管', '三极管', 
       'led', 'circuit', 'resistor', 'capacitor', 'diode', 'transistor',
       '稳压', '放大器', '滤波器', '振荡器', '电源', '功率', '电压', '电流',
       'regulator', 'amplifier', 'filter', 'oscillator', 'power', 'voltage', 'current',
       '运放', 'ic', '芯片', '单片机', 'mcu', 'arduino', 'esp32',
-      'bom', '物料', '元件', 'component', '焊接', 'pcb', 'sch'
+      'bom', '物料', '元件', 'component', '焊接', 'pcb', 'sch',
+      'ascii', '电路图', 'schematic', '原理', 'diagram', '接线', '连接',
+      'lm', 'ne555', '555', '开关', 'switch', '继电器', 'relay', '传感器'
     ]
 
     // 检查是否包含电路设计相关的词汇
@@ -87,13 +89,13 @@ export class AIService {
     
     // 如果是问题但不包含电路关键词，可能是一般性询问
     if (isQuestion && message.length > 10) {
-      console.log('检测为长问题，可能是技术相关')
+      console.log('检测为长问题，可能是技术相关，更倾向于电路设计')
       return true
     }
 
-    // 默认情况，短消息且不包含明确关键词的视为一般对话
-    console.log('默认判断为一般对话，消息长度:', message.length)
-    return false  // 修改：默认为一般对话
+    // 如果消息较长且不是明显的日常对话，倾向于认为是技术询问
+    console.log('最终判断，消息长度:', message.length)
+    return message.length > 15
   }
   
   async chat(message: string, conversationId: string, provider: string, apiConfig: any) {
