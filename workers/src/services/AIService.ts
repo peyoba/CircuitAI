@@ -3,6 +3,58 @@ export class AIService {
   // 🔥 修复：使用更可靠的对话历史存储机制
   private static conversations: Map<string, Array<{role: string, content: string}>> = new Map()
   
+  // 🔥 新增：Token使用监控统计
+  private static tokenStats = {
+    totalRequests: 0,
+    maxTokensErrors: 0,
+    averageInputTokens: 0,
+    averageOutputTokens: 0,
+    providerStats: new Map<string, {requests: number, errors: number, tokens: number}>()
+  }
+  
+  // 🔥 新增：记录token使用情况
+  private recordTokenUsage(provider: string, inputLength: number, outputLength: number, hasError: boolean = false) {
+    this.tokenStats.totalRequests++
+    
+    // 估算token使用（粗略估算：中文1字符≈1.5token，英文1字符≈0.25token）
+    const estimatedInputTokens = Math.ceil(inputLength * 0.8) // 混合语言估算
+    const estimatedOutputTokens = Math.ceil(outputLength * 0.8)
+    
+    if (hasError) {
+      this.tokenStats.maxTokensErrors++
+    }
+    
+    // 更新平均值
+    this.tokenStats.averageInputTokens = 
+      (this.tokenStats.averageInputTokens * (this.tokenStats.totalRequests - 1) + estimatedInputTokens) / this.tokenStats.totalRequests
+    this.tokenStats.averageOutputTokens = 
+      (this.tokenStats.averageOutputTokens * (this.tokenStats.totalRequests - 1) + estimatedOutputTokens) / this.tokenStats.totalRequests
+    
+    // 更新provider统计
+    if (!this.tokenStats.providerStats.has(provider)) {
+      this.tokenStats.providerStats.set(provider, {requests: 0, errors: 0, tokens: 0})
+    }
+    const providerStat = this.tokenStats.providerStats.get(provider)!
+    providerStat.requests++
+    providerStat.tokens += estimatedInputTokens + estimatedOutputTokens
+    if (hasError) providerStat.errors++
+    
+    // 每10次请求输出统计
+    if (this.tokenStats.totalRequests % 10 === 0) {
+      console.log('📊 Token使用统计:', {
+        总请求数: this.tokenStats.totalRequests,
+        MAX_TOKENS错误率: `${((this.tokenStats.maxTokensErrors / this.tokenStats.totalRequests) * 100).toFixed(1)}%`,
+        平均输入Tokens: this.tokenStats.averageInputTokens.toFixed(0),
+        平均输出Tokens: this.tokenStats.averageOutputTokens.toFixed(0),
+        提供商统计: Array.from(this.tokenStats.providerStats.entries()).map(([provider, stats]) => ({
+          provider,
+          成功率: `${((1 - stats.errors / stats.requests) * 100).toFixed(1)}%`,
+          平均Tokens: Math.ceil(stats.tokens / stats.requests)
+        }))
+      })
+    }
+  }
+  
   // 🔥 改进：确保对话历史的持久性和一致性
   private async getConversationHistory(conversationId: string): Promise<Array<{role: string, content: string}>> {
     let history = AIService.conversations.get(conversationId)
@@ -207,6 +259,12 @@ export class AIService {
       
       console.log(`${provider} provider 调用完成，响应类型:`, typeof response)
       
+      // 🔥 记录token使用情况
+      const inputLength = message.length + (conversationHistory?.length || 0) * 50 // 估算输入长度
+      const outputLength = response?.response?.length || 0
+      const hasError = !response || !response.response
+      this.recordTokenUsage(provider, inputLength, outputLength, hasError)
+      
       // 🔥 修复：将AI响应添加到历史并持久化保存
       if (response && response.response) {
         conversationHistory.push({
@@ -264,6 +322,10 @@ export class AIService {
         hasApiConfig: !!apiConfig,
         timestamp: new Date().toISOString()
       })
+      
+      // 🔥 记录错误统计
+      const isMaxTokensError = error.message.includes('MAX_TOKENS') || error.message.includes('token')
+      this.recordTokenUsage(provider, message.length, 0, isMaxTokensError)
       
       // 记录详细错误信息，不使用降级机制
       console.error(`❌ ${provider} provider 调用失败，需要真正修复API问题`)
@@ -591,16 +653,16 @@ export class AIService {
       const isFirstMessage = !conversationHistory || conversationHistory.length === 1 // 只有当前用户消息
       
       if (isFirstMessage) {
-        // 首次对话，使用极简系统提示词
+        // 首次对话，使用极简系统提示词（移除语言强制）
         if (needsCircuitDesign) {
           contents.push({
             role: 'user',
-            parts: [{ text: `你是电路设计专家。请用中文回答，并在回答中包含ASCII电路图。用户问题：${message.substring(0, 300)}` }]
+            parts: [{ text: `你是电路设计专家，请设计：${message.substring(0, 200)}` }]
           })
         } else {
           contents.push({
             role: 'user',  
-            parts: [{ text: `请用中文简洁回答：${message.substring(0, 500)}` }]
+            parts: [{ text: `你是智能助手：${message.substring(0, 250)}` }]
           })
         }
         console.log('使用极简提示词 - 首次对话')
@@ -611,20 +673,20 @@ export class AIService {
         // 极简上下文提示
         contents.push({
           role: 'user',
-          parts: [{ text: '继续我们的电路设计对话。' }]
+          parts: [{ text: '继续电路设计对话' }]
         })
         
-        // 只添加最近2轮对话，大幅缩短内容
-        const recentHistory = conversationHistory.slice(-5, -1) // 最多4条消息（2轮对话）
-        for (const msg of recentHistory.slice(-4)) { // 进一步限制到最近4条
+        // 只添加最近1轮对话，大幅缩短内容
+        const recentHistory = conversationHistory.slice(-2, -1) // 最多1条消息
+        for (const msg of recentHistory) { 
           if (msg.role === 'user') {
             contents.push({
               role: 'user',
-              parts: [{ text: msg.content.length > 100 ? msg.content.substring(0, 100) + '...' : msg.content }]
+              parts: [{ text: msg.content.length > 60 ? msg.content.substring(0, 60) + '...' : msg.content }]
             })
           } else if (msg.role === 'assistant') {
-            // 助手回复只保留前80字符
-            const shortContent = msg.content.length > 80 ? msg.content.substring(0, 80) + '...' : msg.content
+            // 助手回复只保留前40字符
+            const shortContent = msg.content.length > 40 ? msg.content.substring(0, 40) + '...' : msg.content
             contents.push({
               role: 'model',
               parts: [{ text: shortContent }]
@@ -635,7 +697,7 @@ export class AIService {
         // 添加当前用户消息（限制长度）
         contents.push({
           role: 'user',
-          parts: [{ text: message.substring(0, 300) }] // 限制到300字符
+          parts: [{ text: message.substring(0, 200) }] // 限制到200字符
         })
       }
       
@@ -643,9 +705,9 @@ export class AIService {
         contents,
         generationConfig: {
           temperature: 0.7,
-          topK: 20, // 减少
-          topP: 0.8, // 减少
-          maxOutputTokens: 512, // 🔥 大幅减少输出token以避免MAX_TOKENS错误
+          topK: 10, // 进一步减少
+          topP: 0.8,
+          maxOutputTokens: 400, // 🔥 降至400以避免MAX_TOKENS错误
           candidateCount: 1
         },
         safetySettings: [
@@ -1548,130 +1610,50 @@ export class AIService {
     return null
   }
   
-  // 🔥 新增：根据对话类型构建不同的提示词
-  private buildSmartPrompt(userMessage: string, needsCircuitDesign: boolean): string {
+  // 🔥 优化：极简提示词系统，基于用户成功案例
+  private buildOptimizedPrompt(userMessage: string, needsCircuitDesign: boolean): string {
     if (needsCircuitDesign) {
-      return this.buildCircuitDesignPrompt(userMessage)
+      return `你是CircuitsAI的资深硬件电路设计总工程师，请设计：${userMessage.substring(0, 200)}`
     } else {
-      return this.buildGeneralChatPrompt(userMessage)
+      return `你是CircuitsAI的智能助手：${userMessage.substring(0, 250)}`
     }
   }
 
-  // 🔥 新增：一般对话提示词
-  private buildGeneralChatPrompt(userMessage: string): string {
-    return `你是CircuitsAI的智能助手。请自然地回答用户的问题：${userMessage}
-
-## 回复格式要求：
-对于复杂问题，请按以下格式输出让用户看到你的思考过程：
-
-<thinking>
-1. 理解问题：理解用户真正想问什么
-2. 分析思路：思考回答的角度和重点  
-3. 组织回答：如何清晰地表达答案
-</thinking>
-
-然后给出友好的回答。对于简单问候和日常对话，可以直接回答无需显示思考过程。`
-  }
-
-  // 🔥 优化：构建更简洁的电路设计提示词，避免token超限
-  private buildCircuitDesignPrompt(userMessage: string): string {
-    return `你是电路设计专家。请提供电路方案：${userMessage}
-
-要求：
-1. 显示思考过程：<thinking>分析需求→选择方案→计算参数</thinking>
-2. 提供ASCII电路图（用代码块包围）
-3. 列出主要元件和参数
-4. 保持回答简洁专业`
-  }
-
-  // 🔥 优化：构建更专业的电路设计提示词，确保结构化输出
-  private buildCircuitDesignPromptOld(userMessage: string): string {
-    return `你是专业的硬件电路设计工程师。请为用户需求提供完整的电路设计方案：${userMessage}
-
-**严格按照以下格式输出，确保每个部分都完整：**
-
-## 电路设计说明
-**设计原理：** [详细说明电路工作原理]
-**计算方法：** [提供关键参数计算过程和公式]
-**元件选型：** [说明主要元件的选择理由和规格要求]
-**设计注意事项：** [列出设计和调试的关键要点]
-
-## ASCII电路图
-\`\`\`
-[绘制清晰的ASCII电路图，标明所有元件和连接，例如：
-     VCC
-      |
-     [R1]
-      |
-     LED1
-      |
-     GND
-]
-\`\`\`
-
-## 元件列表
-| 位号 | 类型 | 型号/规格 | 参数值 | 封装 | 说明 |
-|------|------|-----------|--------|------|------|
-| R1   | 电阻 | 1/4W 5%   | 330Ω  | 0805 | 限流电阻 |
-| LED1 | LED  | 标准LED   | 红色   | 3mm  | 指示灯 |
-
-## 连接关系
-| 序号 | 起始元件 | 起始引脚 | 目标元件 | 目标引脚 | 连接说明 |
-|------|----------|----------|----------|----------|----------|
-| 1    | VCC      | +        | R1       | 1        | 电源正极连接 |
-| 2    | R1       | 2        | LED1     | +        | 限流后连接LED |
-
-## 物料清单(BOM)
-| 序号 | 名称 | 型号 | 位号 | 数量 | 单价(元) | 备注 |
-|------|------|------|------|------|----------|------|
-| 1    | 电阻 | 330Ω/1/4W | R1 | 1 | 0.05 | 限流电阻 |
-| 2    | LED  | 红色3mm    | LED1 | 1 | 0.15 | 指示灯 |
-
-请确保输出内容专业、详细、准确，包含所有必要的技术信息。`
-  }
 
   // 构建包含历史的提示词
   private buildPromptWithHistory(currentMessage: string, history: Array<{role: string, content: string}>): string {
-    // 如果是第一条消息，使用智能选择的系统提示词
-    if (history.length <= 1) {
-      const needsCircuitDesign = this.isCircuitDesignQuery(currentMessage)
-      return this.buildSmartPrompt(currentMessage, needsCircuitDesign)
-    }
+      // 检查是否是首次对话
+      const isFirstMessage = !conversationHistory || conversationHistory.length <= 1
+      
+      if (isFirstMessage) {
+        // 首次对话，使用优化的极简提示词
+        const needsCircuitDesign = this.isCircuitDesignQuery(currentMessage)
+        return this.buildOptimizedPrompt(currentMessage, needsCircuitDesign)
+      }
 
-    // 构建简化的上下文提示词，包含历史对话
-    let prompt = `你是CircuitsAI的资深硬件电路设计总工程师。请基于以下对话历史，继续为用户提供专业的电路设计服务。
+    // 构建极简的上下文提示词，包含历史对话
+    let prompt = `你是CircuitsAI的资深硬件电路设计总工程师。${currentMessage.substring(0, 150)}
 
 ## 对话历史：
 `
     
-    // 添加最近的对话历史（最多10轮）
-    const recentHistory = history.slice(-10)
+    // 添加最近的对话历史（最多2轮）
+    const recentHistory = history.slice(-4)
     for (let i = 0; i < recentHistory.length - 1; i++) { // 不包括当前用户消息
       const msg = recentHistory[i]
       if (msg.role === 'user') {
-        prompt += `\n**用户：** ${msg.content}\n`
+        prompt += `\n**用户：** ${msg.content.substring(0, 80)}\n`
       } else if (msg.role === 'assistant') {
-        // 只保留响应的前200字符，避免提示词过长
-        const shortContent = msg.content.length > 200 ? msg.content.substring(0, 200) + '...' : msg.content
+        // 只保留响应的前60字符，避免提示词过长
+        const shortContent = msg.content.length > 60 ? msg.content.substring(0, 60) + '...' : msg.content
         prompt += `**AI：** ${shortContent}\n`
       }
     }
 
-    prompt += `\n## 当前用户请求：
-${currentMessage}
-
-## 回复要求：
-请基于上述对话历史，针对用户的当前请求提供：
-1. 如果是新的设计需求，按标准格式提供完整方案（ASCII图、说明、元件表、连接关系、BOM）
-2. 如果是对前面设计的修改或优化，请在原有基础上进行改进
-3. 如果是技术问题，请结合前面的设计背景给出专业解答
-
-请保持回复的专业性和连贯性。`
-
     return prompt
   }
 
-  // 构建Custom API消息格式（支持对话历史）
+  // 构建Custom API消息格式（自然语言适应）
   private buildCustomAPIMessages(message: string, conversationHistory?: Array<{role: string, content: string}>) {
     const messages: any[] = []
     
@@ -1679,28 +1661,17 @@ ${currentMessage}
     const isFirstMessage = !conversationHistory || conversationHistory.length <= 1
     
     if (isFirstMessage) {
-      // 首次对话，使用简化的系统提示词
+      // 首次对话，使用极简提示词
       const needsCircuitDesign = this.isCircuitDesignQuery(message)
-      if (needsCircuitDesign) {
-        messages.push({ 
-          role: 'system', 
-          content: '你是电路设计专家，用中文回答，包含ASCII电路图。' 
-        })
-        messages.push({ 
-          role: 'user', 
-          content: message.substring(0, 400) 
-        })
-      } else {
-        messages.push({ 
-          role: 'system', 
-          content: '你是友好的助手，用中文简洁回答。' 
-        })
-        messages.push({ 
-          role: 'user', 
-          content: message.substring(0, 500) 
-        })
-      }
-      console.log('Custom API: 使用简化系统提示词 - 首次对话')
+      messages.push({ 
+        role: 'system', 
+        content: needsCircuitDesign ? '你是电路设计专家' : '你是智能助手' 
+      })
+      messages.push({ 
+        role: 'user', 
+        content: message.substring(0, 300) 
+      })
+      console.log('Custom API: 使用极简提示词 - 首次对话')
     } else {
       // 后续对话，极简处理
       console.log('Custom API: 使用对话历史 - 后续对话，历史长度:', conversationHistory.length)
@@ -1708,23 +1679,23 @@ ${currentMessage}
       // 添加极简系统指导
       messages.push({ 
         role: 'system', 
-        content: '继续电路设计对话，用中文回答。' 
+        content: '继续电路设计对话' 
       })
       
-      // 🔥 只添加最近4条消息，大幅减少token使用
-      const recentHistory = conversationHistory.slice(-5, -1) // 最多4条
-      for (const msg of recentHistory.slice(-4)) {
+      // 🔥 只添加最近2条消息
+      const recentHistory = conversationHistory.slice(-3, -1) // 最多2条
+      for (const msg of recentHistory) {
         messages.push({ 
           role: msg.role === 'assistant' ? 'assistant' : 'user', 
           // 🔥 大幅限制每条历史消息的长度
-          content: msg.content.length > 150 ? msg.content.substring(0, 150) + '...' : msg.content 
+          content: msg.content.length > 80 ? msg.content.substring(0, 80) + '...' : msg.content 
         })
       }
       
       // 添加当前用户消息
       messages.push({ 
         role: 'user', 
-        content: message.substring(0, 400) // 🔥 限制当前消息长度
+        content: message.substring(0, 300) // 🔥 限制当前消息长度
       })
     }
     
@@ -1732,52 +1703,52 @@ ${currentMessage}
     return messages
   }
 
-  // 构建OpenAI消息格式
+  // 构建OpenAI消息格式（自然语言适应）
   private buildOpenAIMessages(message: string, conversationHistory?: Array<{role: string, content: string}>, needsCircuitDesign?: boolean) {
     const messages: any[] = []
     
-    // 如果是第一条消息，使用简化的系统提示词
+    // 如果是第一条消息，使用极简提示词
     if (!conversationHistory || conversationHistory.length <= 1) {
       if (needsCircuitDesign) {
         messages.push({ 
           role: 'system', 
-          content: '你是电路设计专家。用中文回答，包含ASCII电路图和元件清单。' 
+          content: '你是电路设计专家' 
         })
         messages.push({ 
           role: 'user', 
-          content: message.substring(0, 400) // 🔥 限制消息长度
+          content: message.substring(0, 300) // 🔥 限制消息长度
         })
       } else {
         messages.push({ 
           role: 'system', 
-          content: '你是友好的助手，用中文简洁回答问题。' 
+          content: '你是智能助手' 
         })
         messages.push({ 
           role: 'user', 
-          content: message.substring(0, 500) 
+          content: message.substring(0, 400) 
         })
       }
     } else {
       // 添加极简系统指导
       messages.push({ 
         role: 'system', 
-        content: '继续电路设计对话，用中文回答。' 
+        content: '继续电路设计对话' 
       })
       
-      // 🔥 只添加最近4条消息，大幅减少历史
-      const recentHistory = conversationHistory.slice(-5, -1) // 最多4条
-      for (const msg of recentHistory.slice(-4)) {
+      // 🔥 只添加最近2条消息
+      const recentHistory = conversationHistory.slice(-3, -1) // 最多2条
+      for (const msg of recentHistory) {
         messages.push({ 
           role: msg.role === 'assistant' ? 'assistant' : 'user',
           // 🔥 大幅限制每条历史消息的长度
-          content: msg.content.length > 150 ? msg.content.substring(0, 150) + '...' : msg.content
+          content: msg.content.length > 80 ? msg.content.substring(0, 80) + '...' : msg.content
         })
       }
       
       // 添加当前用户消息
       messages.push({ 
         role: 'user', 
-        content: message.substring(0, 400) // 🔥 限制当前消息长度
+        content: message.substring(0, 300) // 🔥 限制当前消息长度
       })
     }
     
@@ -1833,13 +1804,15 @@ ${currentMessage}
           const modelMatch = contextMatch.match(/(型号|model|part).*?([A-Z0-9\-_]+)/i)
           const packageMatch = contextMatch.match(/(封装|package).*?(SOT|DIP|SOIC|TSSOP|QFN|BGA|\d+mm)/i)
           
+          // 🔥 优化BOM项目结构，专注用户需求：型号/供应商/参数
           items.push({
             component: reference || `${type.toUpperCase()}${itemId}`,
             quantity: 1,
             value: value,
-            model: modelMatch ? modelMatch[2] : this.getDefaultModel(type),
+            model: modelMatch ? modelMatch[2] : this.getOptimizedModel(type, value),
+            supplier: this.getRecommendedSupplier(type),
+            parameters: this.getDetailedParameters(type, value),
             package: packageMatch ? packageMatch[2] : this.getDefaultPackage(reference || type),
-            price: this.getComponentPrice(type),
             description: this.getComponentDescription(type, value)
           })
           itemId++
@@ -1848,13 +1821,80 @@ ${currentMessage}
     })
     
     if (items.length > 0) {
-      const totalCost = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
       console.log('智能提取BOM成功，项目数:', items.length)
-      return { items, totalCost }
+      return { items } // 移除totalCost，不需要价格信息
     }
     
     console.log('无法提取任何BOM数据')
     return null
+  }
+
+  // 🔥 优化：获取优化的具体型号
+  private getOptimizedModel(type: string, value: string): string {
+    const models = {
+      'resistor': `${value} 1/4W ±5% 金属膜电阻`,
+      'capacitor': `${value} X7R 陶瓷电容`,
+      'led': `${value} 高亮度LED`,
+      'ic': this.getSpecificICModel(value),
+      'transistor': `${value} N沟MOSFET`,
+      'diode': `${value} 快恢复二极管`,
+      'inductor': `${value} 线绕电感`
+    }
+    return models[type] || `${value} 标准元件`
+  }
+
+  // 获取具体IC型号
+  private getSpecificICModel(value: string): string {
+    if (value.includes('LM')) return `${value} 线性稳压器`
+    if (value.includes('NE555')) return 'NE555P 定时器IC'
+    if (value.includes('OPA')) return `${value} 运算放大器`
+    if (value.includes('74')) return `${value} 数字逻辑IC`
+    return `${value} 集成电路`
+  }
+
+  // 🔥 新增：推荐供应商
+  private getRecommendedSupplier(type: string): string {
+    const suppliers = {
+      'resistor': 'Vishay/Yageo',
+      'capacitor': 'Murata/Samsung',
+      'led': 'Kingbright/Osram',
+      'ic': 'Texas Instruments/Analog Devices',
+      'transistor': 'Infineon/ON Semi',
+      'diode': 'Vishay/NXP',
+      'inductor': 'Wurth/TDK'
+    }
+    return suppliers[type] || '常见品牌'
+  }
+
+  // 🔥 新增：详细参数信息
+  private getDetailedParameters(type: string, value: string): string {
+    switch(type) {
+      case 'resistor':
+        return `阻值: ${value}, 功率: 1/4W, 精度: ±5%, 温系: 100ppm/℃`
+      case 'capacitor':
+        return `容值: ${value}, 电压: 50V, 介质: X7R, 精度: ±10%`
+      case 'led':
+        return `颜色: ${value}, If: 20mA, Vf: 2.0-2.4V, 亮度: 2000-3000mcd`
+      case 'ic':
+        return this.getICParameters(value)
+      case 'transistor':
+        return `型号: ${value}, Vds: 60V, Id: 30A, Rds(on): <100mΩ`
+      case 'diode':
+        return `型号: ${value}, Vf: 0.7V, If: 1A, 反向电压: 50V`
+      case 'inductor':
+        return `电感值: ${value}, 额定电流: 1A, DCR: <1Ω`
+      default:
+        return `规格: ${value}`
+    }
+  }
+
+  // IC参数详情
+  private getICParameters(value: string): string {
+    if (value.includes('LM7805')) return '输入: 7-35V, 输出: 5V/1A, 精度: ±4%'
+    if (value.includes('NE555')) return '工作电压: 4.5-15V, 输出电流: 200mA, 频率: 1Hz-500kHz'
+    if (value.includes('OPA')) return '增益带宽: 10MHz, 输入偏置: <1mV, 供电: ±15V'
+    if (value.includes('LM358')) return '双运放, 增益带宽: 1MHz, 供电: 3-32V'
+    return `${value} 集成电路参数`
   }
 
   // 获取默认型号
