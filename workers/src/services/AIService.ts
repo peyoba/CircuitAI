@@ -1583,29 +1583,6 @@ export class AIService {
 4. 保持回答简洁专业`
   }
 
-  // 🔥 改进：提取数据从响应（适用于所有AI提供商）
-  private extractDataFromResponse(response: string) {
-    console.log('开始智能提取，响应前500字符:', response.substring(0, 500))
-    
-    let circuit_data: any = null
-    let bom_data: any = null
-    
-    // 1. 提取ASCII电路图
-    circuit_data = this.extractCircuitData(response)
-    
-    // 2. 提取BOM数据 - 四层提取策略
-    bom_data = this.extractBOMData(response, circuit_data)
-    
-    console.log('智能提取完成:', {
-      hasCircuit: !!circuit_data,
-      circuitComponents: circuit_data?.components?.length || 0,
-      hasBOM: !!bom_data,
-      bomItems: bom_data?.items?.length || 0
-    })
-    
-    return { circuit_data, bom_data }
-  }
-
   // 🔥 优化：构建更专业的电路设计提示词，确保结构化输出
   private buildCircuitDesignPromptOld(userMessage: string): string {
     return `你是专业的硬件电路设计工程师。请为用户需求提供完整的电路设计方案：${userMessage}

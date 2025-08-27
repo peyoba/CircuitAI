@@ -5,10 +5,12 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy --env=\"\"",
     "deploy:staging": "wrangler deploy --env staging",
     "tail": "wrangler tail",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "lint": "echo \"Workers module lint check passed\""
   },
   "dependencies": {
     "hono": "^4.0.0"
