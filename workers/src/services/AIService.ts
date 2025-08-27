@@ -360,7 +360,7 @@ export class AIService {
       const requestBody = {
         model,
         messages: messages,
-        max_tokens: 2000,
+        max_tokens: needsCircuitDesign ? 1500 : 800, // 🔥 根据需求调整token限制
         temperature: 0.7
       }
       
@@ -478,7 +478,7 @@ export class AIService {
       body: JSON.stringify({
         model,
         messages: this.buildOpenAIMessages(message, conversationHistory, needsCircuitDesign),
-        max_tokens: 2000,
+        max_tokens: needsCircuitDesign ? 1500 : 800, // 🔥 根据需求调整token限制
         temperature: 0.7
       }),
       signal: controller.signal
@@ -584,57 +584,58 @@ export class AIService {
         timestamp: new Date().toISOString()
       })
       
-      // 构建Gemini的多轮对话格式
+      // 🔥 大幅简化输入以避免MAX_TOKENS错误
       const contents: any[] = []
       
       // 检查是否是首次对话
       const isFirstMessage = !conversationHistory || conversationHistory.length === 1 // 只有当前用户消息
       
       if (isFirstMessage) {
-        // 首次对话，使用智能选择的系统提示词
-        const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign === true)
-        contents.push({
-          role: 'user',
-          parts: [{ text: systemPrompt }]
-        })
-        console.log('使用完整系统提示词 - 首次对话')
-      } else {
-        // 后续对话，包含历史记录
-        console.log('使用对话历史 - 后续对话，历史长度:', conversationHistory.length)
-        
-        // 添加对话历史（最近4轮对话，排除当前消息）
-        const recentHistory = conversationHistory.slice(-9, -1) // 排除最后一条(当前)消息
-        
-        // 如果有历史，先添加一个简化的上下文提示
-        if (recentHistory.length > 0) {
+        // 首次对话，使用极简系统提示词
+        if (needsCircuitDesign) {
           contents.push({
             role: 'user',
-            parts: [{ text: '你是专业的硬件电路设计专家。基于我们之前的对话，请继续为我提供专业的技术支持。' }]
+            parts: [{ text: `你是电路设计专家。请用中文回答，并在回答中包含ASCII电路图。用户问题：${message.substring(0, 300)}` }]
           })
-          
-          // 只添加最近的4轮对话，并且缩短内容长度
-          const limitedHistory = recentHistory.slice(-8) // 最多8条消息（4轮对话）
-          for (const msg of limitedHistory) {
-            if (msg.role === 'user') {
-              contents.push({
-                role: 'user',
-                parts: [{ text: msg.content.length > 200 ? msg.content.substring(0, 200) + '...' : msg.content }]
-              })
-            } else if (msg.role === 'assistant') {
-              // 助手回复只保留前150字符
-              const shortContent = msg.content.length > 150 ? msg.content.substring(0, 150) + '...' : msg.content
-              contents.push({
-                role: 'model',
-                parts: [{ text: shortContent }]
-              })
-            }
+        } else {
+          contents.push({
+            role: 'user',  
+            parts: [{ text: `请用中文简洁回答：${message.substring(0, 500)}` }]
+          })
+        }
+        console.log('使用极简提示词 - 首次对话')
+      } else {
+        // 后续对话，只保留最近2轮对话
+        console.log('使用对话历史 - 后续对话，历史长度:', conversationHistory.length)
+        
+        // 极简上下文提示
+        contents.push({
+          role: 'user',
+          parts: [{ text: '继续我们的电路设计对话。' }]
+        })
+        
+        // 只添加最近2轮对话，大幅缩短内容
+        const recentHistory = conversationHistory.slice(-5, -1) // 最多4条消息（2轮对话）
+        for (const msg of recentHistory.slice(-4)) { // 进一步限制到最近4条
+          if (msg.role === 'user') {
+            contents.push({
+              role: 'user',
+              parts: [{ text: msg.content.length > 100 ? msg.content.substring(0, 100) + '...' : msg.content }]
+            })
+          } else if (msg.role === 'assistant') {
+            // 助手回复只保留前80字符
+            const shortContent = msg.content.length > 80 ? msg.content.substring(0, 80) + '...' : msg.content
+            contents.push({
+              role: 'model',
+              parts: [{ text: shortContent }]
+            })
           }
         }
         
-        // 添加当前用户消息
+        // 添加当前用户消息（限制长度）
         contents.push({
           role: 'user',
-          parts: [{ text: message }]
+          parts: [{ text: message.substring(0, 300) }] // 限制到300字符
         })
       }
       
@@ -642,10 +643,10 @@ export class AIService {
         contents,
         generationConfig: {
           temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024, // 进一步减少输出token限制以避免MAX_TOKENS错误
-          candidateCount: 1 // 只生成一个候选响应
+          topK: 20, // 减少
+          topP: 0.8, // 减少
+          maxOutputTokens: 512, // 🔥 大幅减少输出token以避免MAX_TOKENS错误
+          candidateCount: 1
         },
         safetySettings: [
           {
@@ -1678,33 +1679,53 @@ ${currentMessage}
     const isFirstMessage = !conversationHistory || conversationHistory.length <= 1
     
     if (isFirstMessage) {
-      // 首次对话，使用智能选择的系统提示词
+      // 首次对话，使用简化的系统提示词
       const needsCircuitDesign = this.isCircuitDesignQuery(message)
-      const systemPrompt = this.buildSmartPrompt(message, needsCircuitDesign)
-      messages.push({ role: 'user', content: systemPrompt })
-      console.log('Custom API: 使用完整系统提示词 - 首次对话')
+      if (needsCircuitDesign) {
+        messages.push({ 
+          role: 'system', 
+          content: '你是电路设计专家，用中文回答，包含ASCII电路图。' 
+        })
+        messages.push({ 
+          role: 'user', 
+          content: message.substring(0, 400) 
+        })
+      } else {
+        messages.push({ 
+          role: 'system', 
+          content: '你是友好的助手，用中文简洁回答。' 
+        })
+        messages.push({ 
+          role: 'user', 
+          content: message.substring(0, 500) 
+        })
+      }
+      console.log('Custom API: 使用简化系统提示词 - 首次对话')
     } else {
-      // 后续对话，包含历史记录
+      // 后续对话，极简处理
       console.log('Custom API: 使用对话历史 - 后续对话，历史长度:', conversationHistory.length)
       
-      // 添加系统指导
+      // 添加极简系统指导
       messages.push({ 
         role: 'system', 
-        content: '你是CircuitAI的专业硬件电路设计工程师。基于对话历史，继续为用户提供专业的电路设计服务。请保持回复的专业性和连贯性。' 
+        content: '继续电路设计对话，用中文回答。' 
       })
       
-      // 添加最近的对话历史（最近6条消息，减少token使用）
-      const recentHistory = conversationHistory.slice(-7, -1) // 排除最后一条(当前)消息
-      for (const msg of recentHistory) {
+      // 🔥 只添加最近4条消息，大幅减少token使用
+      const recentHistory = conversationHistory.slice(-5, -1) // 最多4条
+      for (const msg of recentHistory.slice(-4)) {
         messages.push({ 
           role: msg.role === 'assistant' ? 'assistant' : 'user', 
-          // 限制每条历史消息的长度以节省token
-          content: msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content 
+          // 🔥 大幅限制每条历史消息的长度
+          content: msg.content.length > 150 ? msg.content.substring(0, 150) + '...' : msg.content 
         })
       }
       
       // 添加当前用户消息
-      messages.push({ role: 'user', content: message })
+      messages.push({ 
+        role: 'user', 
+        content: message.substring(0, 400) // 🔥 限制当前消息长度
+      })
     }
     
     console.log('Custom API messages构建完成，消息数量:', messages.length)
@@ -1715,31 +1736,49 @@ ${currentMessage}
   private buildOpenAIMessages(message: string, conversationHistory?: Array<{role: string, content: string}>, needsCircuitDesign?: boolean) {
     const messages: any[] = []
     
-    // 如果是第一条消息，添加智能选择的系统提示词
+    // 如果是第一条消息，使用简化的系统提示词
     if (!conversationHistory || conversationHistory.length <= 1) {
-      const needsDesign = needsCircuitDesign === true
-      const systemPrompt = this.buildSmartPrompt(message, needsDesign)
-      messages.push({ role: 'user', content: systemPrompt })
+      if (needsCircuitDesign) {
+        messages.push({ 
+          role: 'system', 
+          content: '你是电路设计专家。用中文回答，包含ASCII电路图和元件清单。' 
+        })
+        messages.push({ 
+          role: 'user', 
+          content: message.substring(0, 400) // 🔥 限制消息长度
+        })
+      } else {
+        messages.push({ 
+          role: 'system', 
+          content: '你是友好的助手，用中文简洁回答问题。' 
+        })
+        messages.push({ 
+          role: 'user', 
+          content: message.substring(0, 500) 
+        })
+      }
     } else {
-      // 添加系统指导
+      // 添加极简系统指导
       messages.push({ 
         role: 'system', 
-        content: '你是CircuitsAI的资深硬件电路设计总工程师。基于对话历史，继续提供专业的电路设计服务。' 
+        content: '继续电路设计对话，用中文回答。' 
       })
       
-      // 添加对话历史（最近6条消息，减少token使用）
-      const recentHistory = conversationHistory.slice(-6)
-      for (let i = 0; i < recentHistory.length - 1; i++) { // 排除当前消息
-        const msg = recentHistory[i]
+      // 🔥 只添加最近4条消息，大幅减少历史
+      const recentHistory = conversationHistory.slice(-5, -1) // 最多4条
+      for (const msg of recentHistory.slice(-4)) {
         messages.push({ 
-          role: msg.role === 'assistant' ? 'assistant' : 'user', 
-          // 限制每条历史消息的长度以节省token
-          content: msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
+          // 🔥 大幅限制每条历史消息的长度
+          content: msg.content.length > 150 ? msg.content.substring(0, 150) + '...' : msg.content
         })
       }
       
       // 添加当前用户消息
-      messages.push({ role: 'user', content: message })
+      messages.push({ 
+        role: 'user', 
+        content: message.substring(0, 400) // 🔥 限制当前消息长度
+      })
     }
     
     return messages
