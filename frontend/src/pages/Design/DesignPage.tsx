@@ -8,6 +8,8 @@ import CircuitViewer from '../../components/circuit/CircuitViewer'
 import VisualCircuitViewer from '../../components/circuit/VisualCircuitViewer'
 import BOMTable from '../../components/circuit/BOMTable'
 import ProjectManager from '../../components/project/ProjectManager'
+import AdSense from '../../components/common/AdSense'
+import { ADSENSE_CONFIG } from '../../config/adsense'
 import { Project } from '../../services/projectService'
 
 const { Sider, Content } = Layout
@@ -162,12 +164,25 @@ const DesignPage = () => {
 
       <Layout>
         <Sider width={400} className="bg-white border-r">
-          <ChatPanel 
-            onCircuitGenerated={handleCircuitGenerated}
-            onBomGenerated={handleBomGenerated}
-            onChatHistory={handleChatHistory}
-            initialMessages={currentProject?.chatHistory}
-          />
+          <div className="h-full flex flex-col">
+            <div className="flex-1">
+              <ChatPanel 
+                onCircuitGenerated={handleCircuitGenerated}
+                onBomGenerated={handleBomGenerated}
+                onChatHistory={handleChatHistory}
+                initialMessages={currentProject?.chatHistory}
+              />
+            </div>
+            {/* AdSense 侧边栏广告 */}
+            <div className="p-2 border-t">
+              <AdSense 
+                slot={ADSENSE_CONFIG.SLOTS.DESIGN_SIDEBAR}
+                format="rectangle"
+                style={{ display: 'block', width: '100%', height: '250px' }}
+                className="w-full"
+              />
+            </div>
+          </div>
         </Sider>
       
       <Content className="bg-gray-50">
