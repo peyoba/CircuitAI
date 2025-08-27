@@ -227,7 +227,7 @@ export class AIService {
     while (attempt <= maxRetries) {
       try {
         let maxTokens = needsCircuitDesign ? 2000 : 500
-        let temperature = needsCircuitDesign ? 0.7 : 0.9
+        const temperature = needsCircuitDesign ? 0.7 : 0.9
         
         // 根据重试次数调整参数
         if (attempt > 0) {
@@ -281,12 +281,12 @@ export class AIService {
     
     // 首先检查是否是简单的问候或日常对话
     const casualPatterns = [
-      /^(hi|hello|你好|在吗|嗨|哈喽)[\s\?！。]*$/i,
-      /^(how are you|你好吗|最近怎么样)[\s\?！。]*$/i,
-      /^(thank you|thanks|谢谢|谢了)[\s\?！。]*$/i,
-      /^(bye|goodbye|再见|拜拜)[\s\?！。]*$/i,
-      /^(ok|好的|明白|收到)[\s\?！。]*$/i,
-      /^(what('s| is) (your name|this)|这是什么|你是谁)[\s\?！。]*$/i
+      /^(hi|hello|你好|在吗|嗨|哈喽)[\s?！。]*$/i,
+      /^(how are you|你好吗|最近怎么样)[\s?！。]*$/i,
+      /^(thank you|thanks|谢谢|谢了)[\s?！。]*$/i,
+      /^(bye|goodbye|再见|拜拜)[\s?！。]*$/i,
+      /^(ok|好的|明白|收到)[\s?！。]*$/i,
+      /^(what('s| is) (your name|this)|这是什么|你是谁)[\s?！。]*$/i
     ]
 
     // 如果是简单问候，返回false（不需要电路设计）
@@ -318,9 +318,9 @@ export class AIService {
 
     // 检查是否是问题格式（包含疑问词）
     const questionPatterns = [
-      /[？\?]/, // 包含问号
+      /[？?]/, // 包含问号
       /^(什么|怎么|如何|为什么|when|what|how|why|where|which|can|could|should|would)/,
-      /(吗|呢|吧)[\s\?！。]*$/,
+      /(吗|呢|吧)[\s?！。]*$/,
       /^(请|帮|help|please)/
     ]
 
