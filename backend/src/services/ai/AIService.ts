@@ -6,6 +6,7 @@ import { ConversationManager, ConversationContext } from './ConversationManager.
 import { PromptTemplates } from './PromptTemplates.js'
 import { CircuitGenerator } from '../circuit/CircuitGenerator.js'
 import { BOMGenerator } from '../circuit/BOMGenerator.js'
+import { isDefaultProvider, getDefaultConfig } from '../../config/defaultAPI.js'
 
 export interface ChatRequest {
   message: string
@@ -93,16 +94,27 @@ export class AIService {
       const context = this.conversationManager.getContext(conversationId)
       const messages = this.conversationManager.getMessages(conversationId, 10) // 最近10条消息
 
-      // 获取API适配器 - 只使用真实API，不使用模拟响应
+      // 获取API适配器 - 支持默认配置
       let aiResponse: string
+      let actualConfig: ProviderConfig
       
       console.log('API Config received:', JSON.stringify(request.apiConfig, null, 2))
-      console.log('Config validation result:', this.isValidConfig(request.apiConfig || {} as ProviderConfig))
+      console.log('Request provider:', request.provider)
       
-      if (request.apiConfig && this.isValidConfig(request.apiConfig)) {
+      // 检查是否使用默认配置
+      if (isDefaultProvider(request.provider) || 
+          (request.apiConfig && isDefaultProvider(request.apiConfig.provider))) {
+        // 使用系统内置的默认配置
+        console.log('Using system default API config')
+        actualConfig = getDefaultConfig()
+        const adapter = APIAdapterFactory.createAdapter(actualConfig)
+        aiResponse = await this.callAPI(adapter, messages, context)
+        console.log('Default API call successful')
+      } else if (request.apiConfig && this.isValidConfig(request.apiConfig)) {
         // 使用用户提供的API配置
         console.log('Using user provided API config for provider:', request.apiConfig.provider)
-        const adapter = APIAdapterFactory.createAdapter(request.apiConfig)
+        actualConfig = request.apiConfig
+        const adapter = APIAdapterFactory.createAdapter(actualConfig)
         aiResponse = await this.callAPI(adapter, messages, context)
         console.log('Real API call successful')
       } else {
@@ -114,8 +126,12 @@ export class AIService {
           aiResponse = await this.callAPI(envAdapter, messages, context)
           console.log('Environment API call successful')
         } else {
-          // 没有有效配置，直接报错
-          throw new Error(`没有找到有效的API配置。请确保已正确配置API密钥和URL。Provider: ${request.provider}`)
+          // 没有有效配置，使用默认配置作为最后的fallback
+          console.log('No valid config found, falling back to default API config')
+          actualConfig = getDefaultConfig()
+          const adapter = APIAdapterFactory.createAdapter(actualConfig)
+          aiResponse = await this.callAPI(adapter, messages, context)
+          console.log('Fallback default API call successful')
         }
       }
 

@@ -1,5 +1,13 @@
 import axios, { AxiosResponse } from 'axios'
 import { message } from 'antd'
+import { 
+  ChatRequest, 
+  ChatResponse, 
+  AIModel, 
+  ApiTestRequest, 
+  ApiTestResponse,
+  ComponentInfo 
+} from '../../../shared/src/types/index'
 
 // 动态获取API基础URL
 const getApiBaseUrl = () => {
@@ -141,83 +149,6 @@ api.interceptors.response.use(
   }
 )
 
-// API接口定义
-export interface ChatRequest {
-  message: string
-  conversationId?: string
-  provider?: string
-  apiConfig?: {
-    provider: string
-    apiKey: string
-    apiUrl: string
-    model: string
-    maxTokens?: number
-    temperature?: number
-    requestFormat?: 'openai' | 'claude' | 'custom'
-    responseFormat?: 'openai' | 'claude' | 'custom'
-    customHeaders?: Record<string, string>
-  }
-}
-
-export interface ChatResponse {
-  success: boolean
-  data: {
-    response: string
-    conversationId: string
-    provider: string
-    circuit_data?: {
-      ascii?: string
-      description?: string
-      components?: Array<{
-        name: string
-        type: string
-        value?: string
-      }>
-    }
-    bom_data?: {
-      items?: Array<{
-        component: string
-        quantity: number
-        price?: number
-      }>
-      totalCost?: number
-    }
-  }
-}
-
-export interface ApiTestRequest {
-  provider: string
-  apiKey: string
-  apiUrl: string
-  model: string
-  maxTokens?: number
-  temperature?: number
-  requestFormat?: 'openai' | 'claude' | 'custom'
-  responseFormat?: 'openai' | 'claude' | 'custom'
-  customHeaders?: Record<string, string>
-}
-
-export interface ApiTestResponse {
-  success: boolean
-  message?: string
-  error?: string
-}
-
-export interface ComponentInfo {
-  id: string
-  name: string
-  type: string
-  category: string
-  properties?: Record<string, string | number | boolean>
-}
-
-export interface AIModel {
-  id: string
-  name: string
-  status: 'available' | 'unavailable' | 'limited'
-  description?: string
-}
-
 // AI对话API
 export const aiAPI = {
   // 发送聊天消息，使用AI专用实例和增强错误处理
@@ -230,17 +161,19 @@ export const aiAPI = {
         apiConfig: request.apiConfig
       })
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 增强错误处理，提供更友好的错误消息
-      if (error.code === 'ECONNABORTED') {
+      const axiosError = error as { code?: string; response?: { status?: number; data?: { error?: string } } }
+      
+      if (axiosError.code === 'ECONNABORTED') {
         throw new Error('AI响应超时，请稍后重试或检查网络连接')
-      } else if (error.response?.status === 500) {
-        const errorMsg = error.response?.data?.error || '服务器内部错误'
+      } else if (axiosError.response?.status === 500) {
+        const errorMsg = axiosError.response?.data?.error || '服务器内部错误'
         throw new Error(`AI服务暂时不可用：${errorMsg}`)
-      } else if (error.response?.status === 429) {
+      } else if (axiosError.response?.status === 429) {
         throw new Error('请求过于频繁，请稍等片刻后再试')
-      } else if (error.response?.status >= 400 && error.response?.status < 500) {
-        const errorMsg = error.response?.data?.error || '请求参数错误'
+      } else if (axiosError.response?.status && axiosError.response.status >= 400 && axiosError.response.status < 500) {
+        const errorMsg = axiosError.response?.data?.error || '请求参数错误'
         throw new Error(`${errorMsg}`)
       } else {
         throw new Error('网络连接失败，请检查网络或稍后重试')

@@ -1,7 +1,7 @@
 import { Response } from 'express'
 import logger from '../config/logger.js'
 
-export interface APIResponseData<T = any> {
+export interface APIResponseData<T = unknown> {
   success: boolean
   data?: T
   error?: string
@@ -21,7 +21,7 @@ export class APIResponse {
     return res.status(statusCode).json(response)
   }
   
-  static error(res: Response, error: string, statusCode = 500, data?: any): Response {
+  static error(res: Response, error: string, statusCode = 500, data?: unknown): Response {
     const response: APIResponseData = {
       success: false,
       error,
@@ -67,8 +67,8 @@ export interface ChatResponseData {
   response: string
   conversation_id: string
   provider: string
-  circuit_data?: any
-  bom_data?: any
+  circuit_data?: unknown
+  bom_data?: unknown
 }
 
 export interface ConfigTestResult {

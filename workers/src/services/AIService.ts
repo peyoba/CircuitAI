@@ -3,6 +3,33 @@ export class AIService {
   // 🔥 修复：使用更可靠的对话历史存储机制
   private static conversations: Map<string, Array<{role: string, content: string}>> = new Map()
   
+  // 🔥 新增：默认API配置支持
+  private static getDefaultAPIConfig() {
+    // 从环境变量获取默认Gemini API配置
+    const defaultApiKey = typeof process !== 'undefined' ? process.env?.DEFAULT_GEMINI_API_KEY : null
+    const backupKey = 'AIzaSyCmuoDi9hHuMteG0yCY_WAmtumx_DS8z-k'
+    
+    const apiKey = defaultApiKey || backupKey
+    
+    if (apiKey === backupKey) {
+      console.warn('⚠️  使用备用API密钥，建议设置环境变量 DEFAULT_GEMINI_API_KEY')
+    }
+    
+    return {
+      provider: 'gemini',
+      apiKey: apiKey,
+      apiUrl: 'https://generativelanguage.googleapis.com/v1beta',
+      model: 'gemini-2.5-flash',
+      maxTokens: 4000,
+      temperature: 0.7
+    }
+  }
+  
+  // 🔥 新增：检查是否使用默认配置
+  private static isDefaultProvider(provider: string): boolean {
+    return provider === 'default' || provider === '智能AI助手'
+  }
+  
   // 🔥 新增：Token使用监控统计
   private static tokenStats = {
     totalRequests: 0,
@@ -188,43 +215,57 @@ export class AIService {
         fullPrompt = this.buildPromptWithHistory(message, conversationHistory)
       }
       
+      // 🔥 新增：检查是否使用默认配置
+      let actualConfig = apiConfig
+      let actualProvider = provider
+      
+      if (AIService.isDefaultProvider(provider) || 
+          (apiConfig && AIService.isDefaultProvider(apiConfig.provider))) {
+        // 使用系统内置的默认配置
+        console.log('使用系统默认API配置 (Gemini)')
+        actualConfig = AIService.getDefaultAPIConfig()
+        actualProvider = 'gemini'
+      }
+      
+      console.log('实际使用的provider:', actualProvider)
+      
       // 根据provider调用不同的AI服务
       let response: any
       console.log(`调用 ${provider} provider...`)
       
-      switch (provider) {
+      switch (actualProvider) {
         case 'openai':
           // 检查是否是自定义OpenAI API
-          if (apiConfig?.apiUrl && !apiConfig.apiUrl.includes('api.openai.com')) {
+          if (actualConfig?.apiUrl && !actualConfig.apiUrl.includes('api.openai.com')) {
             console.log('使用自定义OpenAI兼容API')
-            response = await this.callCustomAPI(message, apiConfig, conversationHistory, needsCircuitDesign)
+            response = await this.callCustomAPI(message, actualConfig, conversationHistory, needsCircuitDesign)
           } else {
-            response = await this.callOpenAI(message, apiConfig, conversationHistory, needsCircuitDesign)
+            response = await this.callOpenAI(message, actualConfig, conversationHistory, needsCircuitDesign)
           }
           break
         case 'claude':
           {
-            const requestFormat = apiConfig?.requestFormat
-            const apiUrl = apiConfig?.apiUrl || ''
+            const requestFormat = actualConfig?.requestFormat
+            const apiUrl = actualConfig?.apiUrl || ''
             const looksLikeClaudeEndpoint = /anthropic\.com/i.test(apiUrl) || /\/messages(\/?$)/i.test(apiUrl)
 
             // 如果是标准Claude API，使用专门的Claude方法
             if ((requestFormat === 'claude' || looksLikeClaudeEndpoint) && apiUrl.includes('anthropic.com')) {
-              response = await this.callClaude(fullPrompt, apiConfig)
+              response = await this.callClaude(fullPrompt, actualConfig)
             } else {
               // 否则使用通用的Custom API方法
               console.log('Claude provider: 使用Custom API方法，URL:', apiUrl)
-              response = await this.callCustomAPI(message, apiConfig, conversationHistory, needsCircuitDesign)
+              response = await this.callCustomAPI(message, actualConfig, conversationHistory, needsCircuitDesign)
             }
           }
           break
         case 'gemini':
           // 检查是否是标准Gemini API
-          if (apiConfig?.apiUrl && apiConfig.apiUrl.includes('generativelanguage.googleapis.com')) {
-            response = await this.callGemini(message, apiConfig, conversationHistory, needsCircuitDesign)
+          if (actualConfig?.apiUrl && actualConfig.apiUrl.includes('generativelanguage.googleapis.com')) {
+            response = await this.callGemini(message, actualConfig, conversationHistory, needsCircuitDesign)
           } else {
-            console.log('Gemini provider: 使用Custom API方法，URL:', apiConfig?.apiUrl)
-            response = await this.callCustomAPI(message, apiConfig, conversationHistory, needsCircuitDesign)
+            console.log('Gemini provider: 使用Custom API方法，URL:', actualConfig?.apiUrl)
+            response = await this.callCustomAPI(message, actualConfig, conversationHistory, needsCircuitDesign)
           }
           break
         case 'doubao':

@@ -2,15 +2,9 @@ import { useState, useEffect } from 'react'
 import { Modal, Form, Input, Select, Button, message, Space, Card, Alert, AutoComplete } from 'antd'
 import { SettingOutlined, EyeInvisibleOutlined, EyeTwoTone, CheckOutlined } from '@ant-design/icons'
 import { aiAPI } from '../../services/api'
+import { APIConfig, ApiTestRequest } from '../../../../shared/src/types/index'
 
 const { Option } = Select
-
-interface APIConfig {
-  provider: string
-  model: string
-  apiKey: string
-  apiUrl?: string
-}
 
 interface APISettingsProps {
   visible: boolean
@@ -112,7 +106,7 @@ const APISettings = ({ visible, onClose, onSave }: APISettingsProps) => {
         model: values.model,
         apiKey: values.apiKey,
         apiUrl: values.apiUrl
-      } as any)
+      } as ApiTestRequest)
 
       if (result && result.success) {
         setTestResult({

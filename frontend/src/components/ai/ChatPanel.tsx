@@ -1,12 +1,15 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { Input, Button, Avatar, message, Spin, Select } from 'antd'
 import { SendOutlined, UserOutlined, RobotOutlined, ClearOutlined, DownloadOutlined, SettingOutlined } from '@ant-design/icons'
 import { ChatMessage } from '../../../../shared/src/types/index'
 import { aiAPI } from '../../services/api'
-import EnhancedAPISettings from '../settings/EnhancedAPISettings'
 import StatusIndicator from '../common/StatusIndicator'
 import RequirementCardSidebar, { Requirements } from './RequirementCardSidebar'
 import { useI18n } from '../../i18n/I18nProvider'
+import { getActiveAPIConfig, getActualAPIConfig, hasUserAPIConfig, saveUserAPIConfig } from '../../config/defaultAPI'
+
+// 懒加载设置组件
+const EnhancedAPISettings = lazy(() => import('../settings/EnhancedAPISettings'))
 
 const { TextArea } = Input
 const { Option } = Select
@@ -153,19 +156,12 @@ const ChatPanel = ({
   }, [])
 
   useEffect(() => {
-    // 检查是否已配置API
-    const savedConfig = localStorage.getItem('circuitsai_api_config')
-    if (savedConfig) {
-      try {
-        const config = JSON.parse(savedConfig)
-        console.log('加载的API配置:', config)
-        setCurrentApiConfig(config)
-        setApiConfigured(!!config.apiKey)
-        setSelectedProvider(config.provider || 'deepseek')  // 修改默认值为deepseek
-      } catch (error) {
-        console.error('Failed to load API config:', error)
-      }
-    }
+    // 加载API配置 - 优先使用默认配置
+    const config = getActiveAPIConfig()
+    console.log('加载的API配置:', config)
+    setCurrentApiConfig(config)
+    setApiConfigured(true) // 默认配置总是可用的
+    setSelectedProvider(config.provider)
   }, [])
 
   // 初始化聊天历史
@@ -279,11 +275,11 @@ const ChatPanel = ({
     const changesList: string[] = []
 
     ;(['type','inputPower','outputTarget','load','acceptanceCriteria'] as const).forEach((key) => {
-      const newVal = (extracted as any)[key]
-      if (newVal && (next as any)[key] !== newVal) {
-        const oldVal = (next as any)[key] || '未设置'
+      const newVal = extracted[key]
+      if (newVal && next[key] !== newVal) {
+        const oldVal = next[key] || '未设置'
         changesList.push(`${key}: ${oldVal} -> ${newVal}`)
-        ;(next as any)[key] = newVal
+        next[key] = newVal
       }
     })
 
@@ -314,9 +310,9 @@ const ChatPanel = ({
     const diffs: string[] = []
     const prev = requirements
     ;(['type','inputPower','outputTarget','load','environment','preferences','acceptanceCriteria'] as const).forEach((key) => {
-      if ((prev as any)[key] !== (next as any)[key]) {
-        const oldVal = (prev as any)[key] || '未设置'
-        const newVal = (next as any)[key] || '未设置'
+      if (prev[key] !== next[key]) {
+        const oldVal = prev[key] || '未设置'
+        const newVal = next[key] || '未设置'
         diffs.push(`${key}: ${oldVal} -> ${newVal}`)
       }
     })
@@ -382,15 +378,19 @@ const ChatPanel = ({
         provider: selectedProvider,
         apiConfig: currentApiConfig || undefined
       })
+      
+      // 获取实际的API配置（处理默认配置映射）
+      const actualConfig = currentApiConfig ? getActualAPIConfig(currentApiConfig) : undefined
+      
       const response = await aiAPI.chat({
         message: userMessage.content,
         conversationId: conversationId.current,
-        provider: selectedProvider,
-        apiConfig: currentApiConfig || undefined
+        provider: actualConfig?.provider || selectedProvider,
+        apiConfig: actualConfig || undefined
       })
 
       // 更新会话ID
-      if (response.data.conversationId) {
+      if (response.data?.conversationId) {
         conversationId.current = response.data.conversationId
       }
       
@@ -425,17 +425,17 @@ const ChatPanel = ({
 
       // 检查是否包含电路图或BOM数据，添加调试日志
       console.log('检查响应数据:', {
-        hasCircuitData: !!response.data.circuit_data,
-        hasBomData: !!response.data.bom_data,
-        circuitComponents: response.data.circuit_data?.components?.length || 0,
-        bomItems: response.data.bom_data?.items?.length || 0
+        hasCircuitData: !!response.data?.circuit_data,
+        hasBomData: !!response.data?.bom_data,
+        circuitComponents: response.data?.circuit_data?.components?.length || 0,
+        bomItems: response.data?.bom_data?.items?.length || 0
       })
       
-      if (response.data.circuit_data && onCircuitGenerated) {
+      if (response.data?.circuit_data && onCircuitGenerated) {
         console.log('传递电路数据到父组件:', response.data.circuit_data)
         onCircuitGenerated(response.data.circuit_data)
       }
-      if (response.data.bom_data && onBomGenerated) {
+      if (response.data?.bom_data && onBomGenerated) {
         console.log('传递BOM数据到父组件:', response.data.bom_data)
         onBomGenerated(response.data.bom_data)
       }
@@ -562,9 +562,18 @@ const ChatPanel = ({
     customHeaders?: Record<string, string>
   }) => {
     console.log('API配置已更新:', config)
+    
+    // 使用默认配置系统保存
+    saveUserAPIConfig({
+      ...config,
+      displayName: config.provider === 'default' ? '智能AI助手' : `${config.provider} - ${config.model}`,
+      description: config.provider === 'default' ? '系统内置AI，无需配置即可使用' : '用户自定义配置',
+      isDefault: config.provider === 'default'
+    })
+    
     setCurrentApiConfig(config)
     setSelectedProvider(config.provider)
-    setApiConfigured(!!config.apiKey)
+    setApiConfigured(true) // 任何配置都是有效的
     message.success('API配置已更新')
   }
 
@@ -836,11 +845,15 @@ const ChatPanel = ({
       </div>
 
       {/* API设置弹窗 */}
-      <EnhancedAPISettings
-        visible={showSettings}
-        onClose={() => setShowSettings(false)}
-        onSave={handleAPIConfig}
-      />
+      {showSettings && (
+        <Suspense fallback={<Spin size="large" />}>
+          <EnhancedAPISettings
+            visible={showSettings}
+            onClose={() => setShowSettings(false)}
+            onSave={handleAPIConfig}
+          />
+        </Suspense>
+      )}
 
       <RequirementCardSidebar
         visible={sidebarVisible}

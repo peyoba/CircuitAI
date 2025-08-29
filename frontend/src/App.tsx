@@ -1,13 +1,22 @@
 import { Routes, Route } from 'react-router-dom'
-import { Layout, Select } from 'antd'
-import HomePage from './pages/Home/HomePage'
-import DesignPage from './pages/Design/DesignPage'
+import { Layout, Select, Spin } from 'antd'
+import { Suspense, lazy } from 'react'
 import './App.css'
 import { I18nProvider, useI18n } from './i18n/I18nProvider'
 
-const { Header, Content } = Layout
+// 懒加载页面组件
+const HomePage = lazy(() => import('./pages/Home/HomePage'))
+const DesignPage = lazy(() => import('./pages/Design/DesignPage'))
 
+const { Header, Content } = Layout
 const { Option } = Select
+
+// 加载占位符组件
+const PageFallback = () => (
+  <div className="flex justify-center items-center h-64">
+    <Spin size="large" tip="正在加载页面..." />
+  </div>
+)
 
 const AppShell = () => {
   const { t, lang, setLang } = useI18n()
@@ -20,7 +29,7 @@ const AppShell = () => {
               <h1 className="text-xl font-bold text-blue-600">{t('app_title')}</h1>
             </div>
             <div>
-              <Select value={lang} onChange={(v) => setLang(v as any)} size="small" style={{ width: 120 }}>
+              <Select value={lang} onChange={(v: string) => setLang(v as 'en' | 'zh')} size="small" style={{ width: 120 }}>
                 <Option value="en">English</Option>
                 <Option value="zh">中文</Option>
               </Select>
@@ -29,10 +38,12 @@ const AppShell = () => {
         </div>
       </Header>
       <Content>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/design" element={<DesignPage />} />
-        </Routes>
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/design" element={<DesignPage />} />
+          </Routes>
+        </Suspense>
       </Content>
     </Layout>
   )

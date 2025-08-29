@@ -6,7 +6,7 @@ import { MockAdapter } from './adapters/MockAdapter.js'
 import { DeepSeekAdapter } from './adapters/DeepSeekAdapter.js'
 import { MoonshotAdapter } from './adapters/MoonshotAdapter.js'
 
-export type SupportedProvider = 'openai' | 'claude' | 'gemini' | 'custom' | 'mock' | 'deepseek' | 'moonshot'
+export type SupportedProvider = 'openai' | 'claude' | 'gemini' | 'custom' | 'mock' | 'deepseek' | 'moonshot' | 'default'
 
 export interface ProviderConfig {
   provider: SupportedProvider

@@ -1,5 +1,5 @@
 // API 响应类型
-export interface APIResponse<T = any> {
+export interface APIResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
@@ -148,4 +148,85 @@ export interface NotificationSettings {
   browser: boolean
   newFeatures: boolean
   updates: boolean
+}
+
+// AI API 请求/响应类型
+export interface ChatRequest {
+  message: string
+  conversationId?: string
+  provider?: string
+  apiConfig?: APIConfig
+}
+
+export interface ChatResponse {
+  success: boolean
+  data?: {
+    response: string
+    conversationId: string
+    provider?: string
+    circuit_data?: {
+      ascii?: string
+      description?: string
+      components?: Array<{
+        name: string
+        type: string
+        value?: string
+      }>
+    }
+    bom_data?: {
+      items?: Array<{
+        component: string
+        quantity: number
+        price?: number
+      }>
+      totalCost?: number
+    }
+  }
+  error?: string
+}
+
+export interface APIConfig {
+  provider: string
+  model: string
+  apiKey: string
+  apiUrl?: string
+  temperature?: number
+  maxTokens?: number
+  requestFormat?: 'openai' | 'claude' | 'custom'
+  responseFormat?: 'openai' | 'claude' | 'custom'
+  customHeaders?: Record<string, string>
+}
+
+export interface ApiTestRequest {
+  provider: string
+  model: string
+  apiKey: string
+  apiUrl?: string
+  temperature?: number
+  maxTokens?: number
+  requestFormat?: 'openai' | 'claude' | 'custom'
+  responseFormat?: 'openai' | 'claude' | 'custom'
+  customHeaders?: Record<string, string>
+}
+
+export interface ApiTestResponse {
+  success: boolean
+  error?: string
+  message?: string
+}
+
+export interface AIModel {
+  id: string
+  name: string
+  provider: string
+  description?: string
+  status?: 'available' | 'unavailable' | 'limited'
+}
+
+export interface ComponentInfo {
+  id: string
+  name: string
+  type: string
+  category: string
+  properties?: Record<string, string | number | boolean>
 }

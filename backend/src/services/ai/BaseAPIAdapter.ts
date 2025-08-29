@@ -16,6 +16,26 @@ export interface APIResponse {
   }
 }
 
+export interface ChatOptions {
+  temperature?: number
+  maxTokens?: number
+  topP?: number
+  timeout?: number
+  [key: string]: unknown
+}
+
+export interface RequestData {
+  messages?: APIMessage[]
+  [key: string]: unknown
+}
+
+// 兼容性类型，允许数组格式
+export type CompatibleRequestData = RequestData | APIMessage[]
+
+export interface APIProviderResponse {
+  [key: string]: unknown
+}
+
 export interface APIConfig {
   apiKey: string
   apiUrl: string
@@ -45,14 +65,14 @@ export abstract class BaseAPIAdapter {
     }
   }
 
-  abstract chat(messages: APIMessage[], options?: any): Promise<string>
+  abstract chat(messages: APIMessage[], options?: ChatOptions): Promise<string>
   abstract validateApiKey(): Promise<boolean>
-  abstract formatMessages(messages: APIMessage[]): any
-  abstract parseResponse(response: any): APIResponse
+  abstract formatMessages(messages: APIMessage[]): CompatibleRequestData
+  abstract parseResponse(response: APIProviderResponse): APIResponse
 
-  protected async makeRequest(endpoint: string, data: any, options?: any): Promise<AxiosResponse> {
+  protected async makeRequest(endpoint: string, data: RequestData, options?: ChatOptions): Promise<AxiosResponse> {
     const requestUrl = `${this.config.apiUrl.replace(/\/$/, '')}${endpoint}`
-    let lastError: any
+    let lastError: Error | unknown
 
     for (let attempt = 1; attempt <= (this.config.maxRetries || 3); attempt++) {
       const startTime = Date.now()
@@ -95,7 +115,7 @@ export abstract class BaseAPIAdapter {
         })
 
         return response
-      } catch (error: any) {
+      } catch (error: unknown) {
         const duration = Date.now() - startTime
         lastError = error
         
@@ -137,7 +157,7 @@ export abstract class BaseAPIAdapter {
   }
 
   // 判断是否应该重试的逻辑
-  private shouldRetry(error: any, attempt: number): boolean {
+  private shouldRetry(error: unknown, attempt: number): boolean {
     // 如果已经达到最大重试次数，不再重试
     if (attempt >= (this.config.maxRetries || 3)) {
       return false
@@ -173,7 +193,7 @@ export abstract class BaseAPIAdapter {
 
   protected abstract getHeaders(): Record<string, string>
 
-  protected handleError(error: any): Error {
+  protected handleError(error: unknown): Error {
     // 添加更详细的错误信息和调试信息
     console.error('API Error Details:', {
       url: error.config?.url,

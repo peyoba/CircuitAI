@@ -35,7 +35,7 @@ const RequirementCardSidebar: React.FC<RequirementCardSidebarProps> = ({ visible
   const [form] = Form.useForm<Requirements>()
   const { t } = useI18n()
 
-  const handleValuesChange = (_: any, allValues: Requirements) => {
+  const handleValuesChange = (_: Partial<Requirements>, allValues: Requirements) => {
     onChange(allValues)
   }
 

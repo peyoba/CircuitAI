@@ -3,6 +3,7 @@ import { Modal, Form, Input, Select, Button, message, Space, Card, Alert, Divide
 import { useI18n } from '../../i18n/I18nProvider'
 import { SettingOutlined, EyeInvisibleOutlined, EyeTwoTone, CheckOutlined, PlusOutlined } from '@ant-design/icons'
 import { aiAPI } from '../../services/api'
+import { ApiTestRequest } from '../../../../shared/src/types/index'
 
 const { Option } = Select
 
@@ -36,6 +37,17 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
   const [isConfigured, setIsConfigured] = useState<boolean>(false)
 
   const providers = useMemo(() => [
+    {
+      value: 'default',
+      label: '智能AI助手 (推荐)',
+      defaultUrl: '',
+      keyExample: '无需配置',
+      description: '系统内置AI，开箱即用，免费使用',
+      models: ['智能AI助手'],
+      requestFormat: 'openai',
+      responseFormat: 'openai',
+      isDefault: true
+    },
     {
       value: 'openai',
       label: 'OpenAI GPT',
@@ -102,7 +114,7 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
       defaultUrl: 'https://generativelanguage.googleapis.com/v1beta',
       keyExample: 'AIza...',
       description: '支持Gemini Pro等模型',
-      models: ['gemini-pro', 'gemini-pro-vision', 'gemini-2.0-flash', 'Gemini 2.0 Flash'],
+      models: ['gemini-2.5-flash', 'gemini-pro', 'gemini-pro-vision', 'gemini-2.0-flash'],
       requestFormat: 'custom',
       responseFormat: 'custom'
     },
@@ -335,7 +347,7 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
 
       // 调用测试接口（通过 aiAPI 转发到 Workers，避免 Pages 405）
       console.log('发送测试请求:', config)
-      const result = await aiAPI.testApiConfig(config as any)
+      const result = await aiAPI.testApiConfig(config as ApiTestRequest)
       console.log('测试结果:', result)
       
       if (result && result.success) {
