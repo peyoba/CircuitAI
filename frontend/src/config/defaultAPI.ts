@@ -63,14 +63,21 @@ export const getActiveAPIConfig = (): DefaultAPIConfig => {
 }
 
 // 获取用于发送到后端的API配置
-export const getActualAPIConfig = (config: DefaultAPIConfig) => {
+export const getActualAPIConfig = (config: DefaultAPIConfig): DefaultAPIConfig => {
   if (config.provider === 'default') {
     // 对于默认配置，只发送provider标识，后端会使用内置配置
     return {
       provider: 'default',
       model: 'default',
       apiKey: '', // 后端会忽略
-      apiUrl: ''  // 后端会忽略
+      apiUrl: '', // 后端会忽略
+      displayName: config.displayName,
+      description: config.description,
+      maxTokens: config.maxTokens,
+      temperature: config.temperature,
+      requestFormat: config.requestFormat,
+      responseFormat: config.responseFormat,
+      customHeaders: config.customHeaders
     }
   }
   // 对于用户配置，发送完整配置

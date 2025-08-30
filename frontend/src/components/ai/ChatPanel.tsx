@@ -6,7 +6,7 @@ import { aiAPI } from '../../services/api'
 import StatusIndicator from '../common/StatusIndicator'
 import RequirementCardSidebar, { Requirements } from './RequirementCardSidebar'
 import { useI18n } from '../../i18n/I18nProvider'
-import { getActiveAPIConfig, getActualAPIConfig, saveUserAPIConfig } from '../../config/defaultAPI'
+import { getActiveAPIConfig, getActualAPIConfig, saveUserAPIConfig, DefaultAPIConfig } from '../../config/defaultAPI'
 
 // 懒加载设置组件
 const EnhancedAPISettings = lazy(() => import('../settings/EnhancedAPISettings'))
@@ -93,17 +93,7 @@ const ChatPanel = ({
       t('quick_action_audio_amp')
     ])
   }, [t])
-  const [currentApiConfig, setCurrentApiConfig] = useState<{
-    provider: string
-    apiKey: string
-    apiUrl: string
-    model: string
-    maxTokens?: number
-    temperature?: number
-    requestFormat?: 'openai' | 'claude' | 'custom'
-    responseFormat?: 'openai' | 'claude' | 'custom'
-    customHeaders?: Record<string, string>
-  } | null>(null)
+  const [currentApiConfig, setCurrentApiConfig] = useState<DefaultAPIConfig | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const conversationId = useRef<string>(`conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
@@ -382,11 +372,24 @@ const ChatPanel = ({
       // 获取实际的API配置（处理默认配置映射）
       const actualConfig = currentApiConfig ? getActualAPIConfig(currentApiConfig) : undefined
       
+      // 转换为 APIConfig 格式
+      const apiConfig = actualConfig ? {
+        provider: actualConfig.provider,
+        model: actualConfig.model,
+        apiKey: actualConfig.apiKey,
+        apiUrl: actualConfig.apiUrl,
+        temperature: actualConfig.temperature,
+        maxTokens: actualConfig.maxTokens,
+        requestFormat: actualConfig.requestFormat,
+        responseFormat: actualConfig.responseFormat,
+        customHeaders: actualConfig.customHeaders
+      } : undefined
+      
       const response = await aiAPI.chat({
         message: userMessage.content,
         conversationId: conversationId.current,
-        provider: actualConfig?.provider || selectedProvider,
-        apiConfig: actualConfig || undefined
+        provider: apiConfig?.provider || selectedProvider,
+        apiConfig: apiConfig || undefined
       })
 
       // 更新会话ID
@@ -563,17 +566,19 @@ const ChatPanel = ({
   }) => {
     console.log('API配置已更新:', config)
     
-    // 使用默认配置系统保存
-    saveUserAPIConfig({
+    const fullConfig: DefaultAPIConfig = {
       ...config,
       displayName: config.provider === 'default' ? '智能AI助手' : `${config.provider} - ${config.model}`,
       description: config.provider === 'default' ? '系统内置AI，无需配置即可使用' : '用户自定义配置',
       isDefault: config.provider === 'default',
       maxTokens: config.maxTokens || 4000,
       temperature: config.temperature || 0.7
-    })
+    }
     
-    setCurrentApiConfig(config)
+    // 使用默认配置系统保存
+    saveUserAPIConfig(fullConfig)
+    
+    setCurrentApiConfig(fullConfig)
     setSelectedProvider(config.provider)
     setApiConfigured(true) // 任何配置都是有效的
     message.success('API配置已更新')
