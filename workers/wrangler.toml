@@ -5,3 +5,4 @@ compatibility_date = "2024-01-01"
 [vars]
 ENVIRONMENT = "production"
 CORS_ORIGIN = "*"
+DEFAULT_GEMINI_API_KEY = "AIzaSyCmuoDi9hHuMteG0yCY_WAmtumx_DS8z-k"

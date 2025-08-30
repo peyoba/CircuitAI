@@ -6,11 +6,14 @@ export interface DefaultAPIConfig {
   apiKey: string
   apiUrl: string
   model: string
-  maxTokens: number
-  temperature: number
+  maxTokens?: number
+  temperature?: number
   displayName: string
   description: string
   isDefault?: boolean
+  requestFormat?: 'openai' | 'claude' | 'custom'
+  responseFormat?: 'openai' | 'claude' | 'custom'
+  customHeaders?: Record<string, string>
 }
 
 // 前端显示的默认AI配置（不包含真实API密钥）
@@ -65,7 +68,9 @@ export const getActualAPIConfig = (config: DefaultAPIConfig) => {
     // 对于默认配置，只发送provider标识，后端会使用内置配置
     return {
       provider: 'default',
-      model: 'default'
+      model: 'default',
+      apiKey: '', // 后端会忽略
+      apiUrl: ''  // 后端会忽略
     }
   }
   // 对于用户配置，发送完整配置

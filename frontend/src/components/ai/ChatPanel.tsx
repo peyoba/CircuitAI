@@ -6,7 +6,7 @@ import { aiAPI } from '../../services/api'
 import StatusIndicator from '../common/StatusIndicator'
 import RequirementCardSidebar, { Requirements } from './RequirementCardSidebar'
 import { useI18n } from '../../i18n/I18nProvider'
-import { getActiveAPIConfig, getActualAPIConfig, hasUserAPIConfig, saveUserAPIConfig } from '../../config/defaultAPI'
+import { getActiveAPIConfig, getActualAPIConfig, saveUserAPIConfig } from '../../config/defaultAPI'
 
 // 懒加载设置组件
 const EnhancedAPISettings = lazy(() => import('../settings/EnhancedAPISettings'))
@@ -568,7 +568,9 @@ const ChatPanel = ({
       ...config,
       displayName: config.provider === 'default' ? '智能AI助手' : `${config.provider} - ${config.model}`,
       description: config.provider === 'default' ? '系统内置AI，无需配置即可使用' : '用户自定义配置',
-      isDefault: config.provider === 'default'
+      isDefault: config.provider === 'default',
+      maxTokens: config.maxTokens || 4000,
+      temperature: config.temperature || 0.7
     })
     
     setCurrentApiConfig(config)
