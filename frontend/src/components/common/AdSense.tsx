@@ -23,15 +23,22 @@ const AdSense: React.FC<AdSenseProps> = ({
   responsive = true
 }) => {
   useEffect(() => {
+    const isLocalhost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(window.location.hostname)
+    if (isLocalhost) return
     try {
-      // 确保adsbygoogle已加载
-      if (typeof window !== 'undefined' && window.adsbygoogle) {
-        window.adsbygoogle.push({});
+      if (typeof window !== 'undefined' && Array.isArray(window.adsbygoogle)) {
+        window.adsbygoogle.push({})
       }
     } catch (error) {
-      console.error('AdSense加载失败:', error);
+      // 在受限网络或被广告拦截时，静默失败
+      console.warn('AdSense加载失败:', error)
     }
-  }, []);
+  }, [])
+
+  const isLocalhost = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(window.location.hostname)
+  if (isLocalhost) {
+    return null
+  }
 
   return (
     <div className={`adsense-container ${className}`}>
@@ -44,7 +51,7 @@ const AdSense: React.FC<AdSenseProps> = ({
         data-full-width-responsive={responsive ? 'true' : 'false'}
       />
     </div>
-  );
+  )
 };
 
 export default AdSense;

@@ -47,9 +47,14 @@
       }
     </style>
     
-    <!-- Google AdSense (with error handling) -->
+    <!-- Google AdSense (with error handling, disabled on localhost/dev) -->
     <script>
       (function() {
+        var isLocalhost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(location.hostname)
+        if (isLocalhost) {
+          console.info('AdSense disabled in dev/local environment')
+          return
+        }
         try {
           var script = document.createElement('script');
           script.async = true;
@@ -65,9 +70,14 @@
       })();
     </script>
     
-    <!-- Google tag (gtag.js) with error handling -->
+    <!-- Google tag (gtag.js) with error handling, disabled on localhost/dev -->
     <script>
       (function() {
+        var isLocalhost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(location.hostname)
+        if (isLocalhost) {
+          console.info('Google Analytics disabled in dev/local environment')
+          return
+        }
         try {
           var script = document.createElement('script');
           script.async = true;
@@ -78,7 +88,7 @@
           document.head.appendChild(script);
           
           window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
+          function gtag(){dataLayer.push(arguments);} 
           gtag('js', new Date());
           gtag('config', 'G-ZTZZTLCHN1');
         } catch (e) {

@@ -9,7 +9,6 @@ const HomePage = lazy(() => import('./pages/Home/HomePage'))
 const DesignPage = lazy(() => import('./pages/Design/DesignPage'))
 
 const { Header, Content } = Layout
-const { Option } = Select
 
 // 加载占位符组件
 const PageFallback = () => (
@@ -29,10 +28,16 @@ const AppShell = () => {
               <h1 className="text-xl font-bold text-blue-600">{t('app_title')}</h1>
             </div>
             <div>
-              <Select value={lang} onChange={(v: string) => setLang(v as 'en' | 'zh')} size="small" style={{ width: 120 }}>
-                <Option value="en">English</Option>
-                <Option value="zh">中文</Option>
-              </Select>
+              <Select
+                value={lang}
+                onChange={(v: string) => setLang(v as 'en' | 'zh')}
+                size="small"
+                style={{ width: 120 }}
+                options={[
+                  { value: 'en', label: 'English' },
+                  { value: 'zh', label: '中文' },
+                ]}
+              />
             </div>
           </div>
         </div>
