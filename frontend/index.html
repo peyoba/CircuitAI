@@ -47,55 +47,7 @@
       }
     </style>
     
-    <!-- Google AdSense (with error handling, disabled on localhost/dev) -->
-    <script>
-      (function() {
-        var isLocalhost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(location.hostname)
-        if (isLocalhost) {
-          console.info('AdSense disabled in dev/local environment')
-          return
-        }
-        try {
-          var script = document.createElement('script');
-          script.async = true;
-          script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6165370615688912';
-          script.crossOrigin = 'anonymous';
-          script.onerror = function() {
-            console.warn('AdSense failed to load (network restricted or blocked)');
-          };
-          document.head.appendChild(script);
-        } catch (e) {
-          console.warn('AdSense initialization failed:', e);
-        }
-      })();
-    </script>
-    
-    <!-- Google tag (gtag.js) with error handling, disabled on localhost/dev -->
-    <script>
-      (function() {
-        var isLocalhost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(location.hostname)
-        if (isLocalhost) {
-          console.info('Google Analytics disabled in dev/local environment')
-          return
-        }
-        try {
-          var script = document.createElement('script');
-          script.async = true;
-          script.src = 'https://www.googletagmanager.com/gtag/js?id=G-ZTZZTLCHN1';
-          script.onerror = function() {
-            console.warn('Google Analytics failed to load (network restricted or blocked)');
-          };
-          document.head.appendChild(script);
-          
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);} 
-          gtag('js', new Date());
-          gtag('config', 'G-ZTZZTLCHN1');
-        } catch (e) {
-          console.warn('Google Analytics initialization failed:', e);
-        }
-      })();
-    </script>
+    <!-- Third-party analytics/ads temporarily disabled to avoid blocking -->
   </head>
   <body>
     <!-- 加载指示器 -->
@@ -120,14 +72,19 @@
         }
       }, 10000); // 10秒超时
       
-      // 应用加载成功后隐藏加载指示器
+      // 更早隐藏加载指示器（DOMContentLoaded 即可）
+      document.addEventListener('DOMContentLoaded', function() {
+        var loading = document.getElementById('loading-fallback');
+        if (loading) {
+          loading.style.display = 'none';
+        }
+      });
+      // 兜底：window load 后再次确认
       window.addEventListener('load', function() {
-        setTimeout(function() {
-          var loading = document.getElementById('loading-fallback');
-          if (loading) {
-            loading.style.display = 'none';
-          }
-        }, 1000);
+        var loading = document.getElementById('loading-fallback');
+        if (loading) {
+          loading.style.display = 'none';
+        }
       });
     </script>
     <script type="module" src="/src/main.tsx"></script>
