@@ -12,7 +12,6 @@ import { getActiveAPIConfig, getActualAPIConfig, saveUserAPIConfig, DefaultAPICo
 const EnhancedAPISettings = lazy(() => import('../settings/EnhancedAPISettings'))
 
 const { TextArea } = Input
-const { Option } = Select
 
 interface CircuitData {
   ascii?: string
@@ -657,13 +656,8 @@ const ChatPanel = ({
               onChange={setSelectedProvider}
               size="small"
               style={{ minWidth: 160 }}
-            >
-              {availableProviders.map(provider => (
-                <Option key={provider.value} value={provider.value}>
-                  {provider.icon} {provider.label}
-                </Option>
-              ))}
-            </Select>
+              options={availableProviders.map(p => ({ value: p.value, label: `${p.icon} ${p.label}` }))}
+            />
           </div>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-1">

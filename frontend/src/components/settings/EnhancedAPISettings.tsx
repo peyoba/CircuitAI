@@ -5,7 +5,6 @@ import { SettingOutlined, EyeInvisibleOutlined, EyeTwoTone, CheckOutlined, PlusO
 import { aiAPI } from '../../services/api'
 import { ApiTestRequest } from '../../../../shared/src/types/index'
 
-const { Option } = Select
 
 interface APIConfig {
   provider: string
@@ -473,18 +472,17 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
           name="provider"
           rules={[{ required: true, message: '请选择AI提供商' }]}
         >
-          <Select value={currentProvider} onChange={handleProviderChange} placeholder="选择AI提供商">
-            {providers.map(provider => (
-              <Option key={provider.value} value={provider.value}>
-                <div>
-                  <div>{provider.label}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>
-                    {provider.description}
-                  </div>
-                </div>
-              </Option>
-            ))}
-          </Select>
+          <Select
+            value={currentProvider}
+            onChange={handleProviderChange}
+            placeholder="选择AI提供商"
+            options={providers.map(p => ({ value: p.value, label: (
+              <div>
+                <div>{p.label}</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>{p.description}</div>
+              </div>
+            ) }))}
+          />
         </Form.Item>
 
         <Form.Item
@@ -563,11 +561,13 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
                 name="requestFormat"
                 style={{ flex: 1 }}
               >
-                <Select>
-                  <Option value="openai">OpenAI格式</Option>
-                  <Option value="claude">Claude格式</Option>
-                  <Option value="custom">自定义格式</Option>
-                </Select>
+                <Select
+                  options={[
+                    { value: 'openai', label: 'OpenAI格式' },
+                    { value: 'claude', label: 'Claude格式' },
+                    { value: 'custom', label: '自定义格式' },
+                  ]}
+                />
               </Form.Item>
 
               <Form.Item
@@ -575,11 +575,13 @@ const EnhancedAPISettings = ({ visible, onClose, onSave }: EnhancedAPISettingsPr
                 name="responseFormat"
                 style={{ flex: 1 }}
               >
-                <Select>
-                  <Option value="openai">OpenAI格式</Option>
-                  <Option value="claude">Claude格式</Option>
-                  <Option value="custom">自定义格式</Option>
-                </Select>
+                <Select
+                  options={[
+                    { value: 'openai', label: 'OpenAI格式' },
+                    { value: 'claude', label: 'Claude格式' },
+                    { value: 'custom', label: '自定义格式' },
+                  ]}
+                />
               </Form.Item>
             </div>
 

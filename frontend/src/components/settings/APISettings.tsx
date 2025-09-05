@@ -4,7 +4,6 @@ import { SettingOutlined, EyeInvisibleOutlined, EyeTwoTone, CheckOutlined } from
 import { aiAPI } from '../../services/api'
 import { APIConfig, ApiTestRequest } from '../../../../shared/src/types/index'
 
-const { Option } = Select
 
 interface APISettingsProps {
   visible: boolean
@@ -196,18 +195,16 @@ const APISettings = ({ visible, onClose, onSave }: APISettingsProps) => {
           name="provider"
           rules={[{ required: true, message: '请选择API提供商' }]}
         >
-          <Select onChange={handleProviderChange} placeholder="选择API提供商">
-            {providers.map(provider => (
-              <Option key={provider.value} value={provider.value}>
-                <div>
-                  <div>{provider.label}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>
-                    {provider.description}
-                  </div>
-                </div>
-              </Option>
-            ))}
-          </Select>
+          <Select
+            onChange={handleProviderChange}
+            placeholder="选择API提供商"
+            options={providers.map(p => ({ value: p.value, label: (
+              <div>
+                <div>{p.label}</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>{p.description}</div>
+              </div>
+            ) }))}
+          />
         </Form.Item>
 
         <Form.Item

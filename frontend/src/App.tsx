@@ -3,6 +3,7 @@ import { Layout, Select, Spin } from 'antd'
 import { Suspense, lazy } from 'react'
 import './App.css'
 import { I18nProvider, useI18n } from './i18n/I18nProvider'
+import ErrorBoundary from './components/common/ErrorBoundary'
 
 // 懒加载页面组件
 const HomePage = lazy(() => import('./pages/Home/HomePage'))
@@ -56,9 +57,11 @@ const AppShell = () => {
 
 function App() {
   return (
-    <I18nProvider>
-      <AppShell />
-    </I18nProvider>
+    <ErrorBoundary>
+      <I18nProvider>
+        <AppShell />
+      </I18nProvider>
+    </ErrorBoundary>
   )
 }
 

@@ -14,7 +14,6 @@ import {
 } from '@ant-design/icons'
 import { circuitRenderer, CircuitLayout, RenderOptions } from '../../services/circuitRenderer'
 
-const { Option } = Select
 
 interface VisualCircuitViewerProps {
   circuitData?: {
@@ -269,10 +268,11 @@ const VisualCircuitViewer = ({
             onChange={handleThemeChange}
             size="small"
             style={{ width: 80 }}
-          >
-            <Option value="light">{t('theme_light')}</Option>
-            <Option value="dark">{t('theme_dark')}</Option>
-          </Select>
+            options={[
+              { value: 'light', label: t('theme_light') },
+              { value: 'dark', label: t('theme_dark') },
+            ]}
+          />
 
           {/* 网格控制 */}
           <Tooltip title={t('toggle_grid')}>
