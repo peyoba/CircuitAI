@@ -72,18 +72,24 @@
         }
       }, 10000); // 10秒超时
       
-      // 更早隐藏加载指示器（DOMContentLoaded 即可）
-      document.addEventListener('DOMContentLoaded', function() {
-        var loading = document.getElementById('loading-fallback');
-        if (loading) {
-          loading.style.display = 'none';
-        }
-      });
-      // 兜底：window load 后再次确认
+      // 仅在window load后隐藏（避免本地直接打开时空白）
       window.addEventListener('load', function() {
-        var loading = document.getElementById('loading-fallback');
-        if (loading) {
-          loading.style.display = 'none';
+        setTimeout(function() {
+          var loading = document.getElementById('loading-fallback');
+          if (loading) {
+            loading.style.display = 'none';
+          }
+        }, 300);
+      });
+
+      // 本地直接打开文件时给出提示
+      document.addEventListener('DOMContentLoaded', function() {
+        if (location.protocol === 'file:') {
+          var error = document.getElementById('error-info');
+          if (error) {
+            error.textContent = '请通过开发服务器访问：在 frontend 目录执行 npm install && npm run dev，然后打开 http://localhost:3002';
+            error.style.display = 'block';
+          }
         }
       });
     </script>
