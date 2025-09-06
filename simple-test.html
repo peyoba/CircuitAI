@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI - 简单测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .emoji {
+            font-size: 4em;
+            margin: 20px 0;
+        }
+        .status {
+            font-size: 1.2em;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+        }
+        .success {
+            background: rgba(40, 167, 69, 0.3);
+        }
+        .time {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="emoji">🚀</div>
+        <h1>CircuitAI</h1>
+        <div class="status success">
+            ✅ 网站基础功能正常
+        </div>
+        <div class="status">
+            🌐 服务器连接成功
+        </div>
+        <div class="status">
+            📱 页面渲染正常
+        </div>
+        
+        <div style="margin: 30px 0;">
+            <p><strong>恭喜！</strong></p>
+            <p>如果您能看到这个页面，说明：</p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>✅ 网络连接正常</li>
+                <li>✅ DNS解析正常</li>
+                <li>✅ 服务器响应正常</li>
+                <li>✅ HTML/CSS加载正常</li>
+                <li>✅ JavaScript执行正常</li>
+            </ul>
+        </div>
+        
+        <button onclick="testJS()">测试JavaScript</button>
+        <button onclick="goToMain()">进入主应用</button>
+        
+        <div class="time">
+            页面加载时间: <span id="loadTime">计算中...</span>
+        </div>
+        
+        <div id="jsTest" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        // 记录页面加载时间
+        const startTime = performance.now();
+        
+        window.addEventListener('load', function() {
+            const loadTime = Math.round(performance.now() - startTime);
+            document.getElementById('loadTime').textContent = loadTime + 'ms';
+        });
+        
+        // 测试JavaScript功能
+        function testJS() {
+            const testDiv = document.getElementById('jsTest');
+            const now = new Date().toLocaleString('zh-CN');
+            testDiv.innerHTML = `
+                <div class="status success">
+                    🎉 JavaScript测试成功！<br>
+                    当前时间: ${now}
+                </div>
+            `;
+        }
+        
+        // 跳转到主应用
+        function goToMain() {
+            window.location.href = '/';
+        }
+        
+        // 检查控制台错误
+        let errorCount = 0;
+        window.onerror = function(msg, url, line, col, error) {
+            errorCount++;
+            console.error('页面错误:', msg, 'at', url + ':' + line);
+            return false;
+        };
+        
+        // 页面加载完成后显示状态
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ CircuitAI测试页面加载成功');
+            console.log('📊 页面状态: 正常');
+            console.log('🔍 如果您在主应用中遇到ref.js错误，那问题可能出在复杂组件或第三方脚本上');
+        });
+        
+        // 5秒后检查是否有错误
+        setTimeout(function() {
+            if (errorCount === 0) {
+                console.log('✅ 5秒内无JavaScript错误，页面运行稳定');
+            } else {
+                console.warn('⚠️ 检测到', errorCount, '个JavaScript错误');
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
