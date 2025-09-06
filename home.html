@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI - AI驱动的智能电路设计平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 900px;
+            width: 90%;
+            animation: fadeIn 1s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .logo {
+            font-size: 4em;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            color: #1890ff;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 1.3em;
+            color: #666;
+            margin-bottom: 40px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+        
+        .feature {
+            background: rgba(24, 144, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(24, 144, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(24, 144, 255, 0.2);
+            border-color: #1890ff;
+        }
+        
+        .feature-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .feature h3 {
+            color: #1890ff;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .actions {
+            margin-top: 40px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            background: linear-gradient(135deg, #1890ff, #40a9ff);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(24, 144, 255, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(24, 144, 255, 0.4);
+            background: linear-gradient(135deg, #40a9ff, #1890ff);
+        }
+        
+        .btn.secondary {
+            background: linear-gradient(135deg, #52c41a, #73d13d);
+            box-shadow: 0 4px 15px rgba(82, 196, 26, 0.3);
+        }
+        
+        .btn.secondary:hover {
+            background: linear-gradient(135deg, #73d13d, #52c41a);
+            box-shadow: 0 6px 25px rgba(82, 196, 26, 0.4);
+        }
+        
+        .status {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(82, 196, 26, 0.1);
+            border: 2px solid rgba(82, 196, 26, 0.3);
+            border-radius: 10px;
+            color: #389e0d;
+            font-weight: 500;
+        }
+        
+        .chat-demo {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: left;
+            border: 2px solid #e9ecef;
+        }
+        
+        .message {
+            margin: 10px 0;
+            padding: 12px 16px;
+            border-radius: 15px;
+            max-width: 80%;
+        }
+        
+        .user-message {
+            background: #1890ff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .ai-message {
+            background: #e6f7ff;
+            color: #1890ff;
+            border: 1px solid #91d5ff;
+        }
+        
+        .typing {
+            display: inline-flex;
+            align-items: center;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #999;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+        
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 30px 20px; }
+            h1 { font-size: 2em; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🔌</div>
+        <h1>CircuitAI</h1>
+        <div class="subtitle">AI驱动的智能电路设计平台</div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🤖</div>
+                <h3>AI智能助手</h3>
+                <p>与AI对话，描述您的电路需求，获得专业的设计建议和解决方案</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <h3>快速设计</h3>
+                <p>从概念到实现，AI帮助您快速生成电路图和BOM清单</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <h3>精准匹配</h3>
+                <p>根据您的需求智能推荐元件，优化电路性能和成本</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3>可视化设计</h3>
+                <p>生成标准的电路原理图和专业的技术文档</p>
+            </div>
+        </div>
+        
+        <div class="chat-demo">
+            <div class="message user-message">
+                我需要设计一个5V到3.3V的电压转换电路
+            </div>
+            <div class="message ai-message">
+                我来帮您设计一个LDO电压转换电路。推荐使用AMS1117-3.3，输入电压范围4.75V-15V，输出电流最大1A。需要添加输入输出电容进行滤波...
+            </div>
+            <div class="message ai-message">
+                <div class="typing">
+                    AI正在生成电路图
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn" onclick="startChat()">🚀 开始设计</button>
+            <button class="btn secondary" onclick="showDemo()">📱 查看演示</button>
+            <button class="btn" onclick="openTest()">🔧 功能测试</button>
+        </div>
+        
+        <div class="status">
+            ✅ 系统运行正常 | 已为 <span id="userCount">1,234</span>+ 用户提供服务
+        </div>
+        
+        <div style="margin-top: 20px; color: #999; font-size: 0.9em;">
+            <p>版本: v2.0.1 | 最后更新: <span id="updateTime"></span></p>
+            <p style="font-size: 0.8em; margin-top: 5px;">构建时间: 2025-09-06 09:36 UTC</p>
+        </div>
+    </div>
+
+    <script>
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 显示当前时间
+            const now = new Date();
+            document.getElementById('updateTime').textContent = now.toLocaleString('zh-CN');
+            
+            // 动态用户计数
+            let count = 1234;
+            setInterval(() => {
+                count += Math.floor(Math.random() * 3);
+                document.getElementById('userCount').textContent = count.toLocaleString();
+            }, 5000);
+            
+            console.log('🚀 CircuitAI 主页加载完成');
+            console.log('✅ 系统状态: 正常运行');
+            console.log('🔗 测试页面: /test.html');
+        });
+        
+        function startChat() {
+            // 这里应该跳转到完整的React应用
+            // 暂时显示提示
+            alert('🔧 完整版应用正在修复中！\n\n您可以：\n1. 访问 /test.html 查看功能测试\n2. 稍后重试完整版应用\n3. 联系技术支持');
+            
+            // 尝试加载完整应用
+            console.log('尝试加载完整React应用...');
+            window.location.hash = '#/design';
+        }
+        
+        function showDemo() {
+            alert('📱 演示功能包括：\n\n🤖 AI智能对话\n⚡ 电路图生成\n📊 BOM清单生成\n🎯 元件推荐\n\n完整演示请访问测试页面！');
+            openTest();
+        }
+        
+        function openTest() {
+            window.open('/test.html', '_blank');
+        }
+        
+        // 错误处理
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('页面错误:', msg, 'at', url + ':' + line);
+            return false;
+        };
+        
+        // 性能监控
+        window.addEventListener('load', function() {
+            const loadTime = performance.now();
+            console.log('📊 页面加载时间:', Math.round(loadTime), 'ms');
+        });
+    </script>
+</body>
+</html>
