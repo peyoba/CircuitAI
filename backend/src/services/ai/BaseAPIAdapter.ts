@@ -49,6 +49,31 @@ export interface APIConfig {
   socketTimeout?: number
 }
 
+// 错误类型保护函数
+interface AxiosError {
+  code?: string
+  response?: {
+    status: number
+    statusText?: string
+    data?: unknown
+  }
+  config?: {
+    url?: string
+    method?: string
+    headers?: Record<string, unknown>
+  }
+  message: string
+}
+
+function isAxiosError(error: unknown): error is AxiosError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as any).message === 'string'
+  )
+}
+
 export abstract class BaseAPIAdapter {
   protected config: APIConfig
 
@@ -119,6 +144,11 @@ export abstract class BaseAPIAdapter {
         const duration = Date.now() - startTime
         lastError = error
         
+        if (!isAxiosError(error)) {
+          logger.error('Non-Axios error occurred:', { error })
+          throw new Error(`Request failed: ${String(error)}`)
+        }
+        
         // 详细的错误日志
         logger.error('API request failed:', {
           url: requestUrl,
@@ -163,6 +193,10 @@ export abstract class BaseAPIAdapter {
       return false
     }
 
+    if (!isAxiosError(error)) {
+      return false
+    }
+
     // 网络错误应该重试
     if (error.code === 'ETIMEDOUT' || 
         error.code === 'ECONNABORTED' || 
@@ -173,7 +207,7 @@ export abstract class BaseAPIAdapter {
     }
 
     // 5xx服务器错误应该重试
-    if (error.response?.status >= 500) {
+    if (error.response?.status && error.response.status >= 500) {
       return true
     }
 
@@ -194,6 +228,10 @@ export abstract class BaseAPIAdapter {
   protected abstract getHeaders(): Record<string, string>
 
   protected handleError(error: unknown): Error {
+    if (!isAxiosError(error)) {
+      return new Error(`未知错误: ${String(error)}`)
+    }
+
     // 添加更详细的错误信息和调试信息
     console.error('API Error Details:', {
       url: error.config?.url,
@@ -239,7 +277,8 @@ export abstract class BaseAPIAdapter {
         errorDetails = `${message} (${statusText})`
       }
       if (responseData && typeof responseData === 'object') {
-        const errorMsg = responseData.error || responseData.message || responseData.detail || responseData.error_description
+        const data = responseData as Record<string, unknown>
+        const errorMsg = data.error || data.message || data.detail || data.error_description
         if (errorMsg && typeof errorMsg === 'string') {
           errorDetails = `${errorDetails}: ${errorMsg}`
         }

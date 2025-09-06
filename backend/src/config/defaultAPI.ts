@@ -1,3 +1,5 @@
+import { SupportedProvider } from '../services/ai/APIAdapterFactory.js'
+
 // 后端默认API配置
 // 这个配置对前端透明，用户无法看到实际的API密钥和提供商
 
@@ -18,7 +20,7 @@ const getSecureAPIKey = (): string => {
 export const DEFAULT_API_CONFIG = {
   // 内部使用的实际配置（对外隐藏）
   internal: {
-    provider: 'gemini',
+    provider: 'gemini' as SupportedProvider,
     apiKey: getSecureAPIKey(),
     apiUrl: 'https://generativelanguage.googleapis.com/v1beta',
     model: 'gemini-2.5-flash',

@@ -1,4 +1,4 @@
-import { BaseAPIAdapter, APIMessage, APIResponse, APIConfig } from '../BaseAPIAdapter.js'
+import { BaseAPIAdapter, APIMessage, APIResponse, APIConfig, CompatibleRequestData } from '../BaseAPIAdapter.js'
 
 /**
  * Mock适配器 - 用于测试和演示，不需要真实的API连接
@@ -38,7 +38,7 @@ export class MockAdapter extends BaseAPIAdapter {
     return true
   }
 
-  formatMessages(messages: APIMessage[]): Array<{ role: string; content: string }> {
+  formatMessages(messages: APIMessage[]): CompatibleRequestData {
     return messages.map(msg => ({
       role: msg.role,
       content: msg.content
