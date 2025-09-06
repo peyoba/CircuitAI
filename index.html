@@ -2,29 +2,56 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>CircuitAI SSL测试</title>
+<title>CircuitAI - AI智能电路设计平台</title>
+<style>
+body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+.container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+h1 { color: #1890ff; text-align: center; font-size: 2.5em; margin-bottom: 10px; }
+.subtitle { text-align: center; color: #666; font-size: 1.2em; margin-bottom: 30px; }
+.status { background: #f6ffed; border: 1px solid #b7eb8f; padding: 15px; border-radius: 5px; color: #52c41a; text-align: center; margin: 20px 0; }
+.feature { margin: 20px 0; padding: 20px; background: #f8f9ff; border-left: 4px solid #1890ff; border-radius: 5px; }
+.feature h3 { color: #1890ff; margin-top: 0; }
+.btn { display: inline-block; background: #1890ff; color: white; padding: 12px 24px; margin: 10px 5px; border: none; border-radius: 5px; text-decoration: none; cursor: pointer; }
+.btn:hover { background: #40a9ff; }
+.footer { text-align: center; color: #999; margin-top: 40px; padding-top: 20px; border-top: 1px solid #f0f0f0; }
+</style>
 </head>
 <body>
+<div class="container">
 <h1>🔌 CircuitAI</h1>
-<p><strong>AI驱动的智能电路设计平台</strong></p>
-<hr>
-<p>✅ 如果您能看到此页面，说明SSL证书和部署都正常！</p>
-<p>📅 版本: v2.1.5-ssl-test</p>
-<p>🌐 当前访问地址: <span id="url"></span></p>
-<p>⏰ 加载时间: <span id="time"></span></p>
+<div class="subtitle">AI驱动的智能电路设计平台</div>
 
-<hr>
-<h2>🔗 测试链接：</h2>
-<ul>
-<li><a href="https://circuitai.top">https://circuitai.top</a> (主域名)</li>
-<li><a href="https://520d8775.circuitai.pages.dev">https://520d8775.circuitai.pages.dev</a> (Cloudflare Pages)</li>
-<li><a href="/basic.html">基础测试页面</a></li>
-</ul>
+<div class="status">✅ 网站运行正常 | 版本 v3.0.0-stable</div>
+
+<div class="feature">
+<h3>🤖 AI智能助手</h3>
+<p>与AI对话，描述您的电路需求，获得专业的设计建议和解决方案。支持多种主流AI模型接入。</p>
+</div>
+
+<div class="feature">
+<h3>⚡ 快速设计</h3>
+<p>从概念到实现，AI帮助您快速生成电路图和BOM清单，大幅提升设计效率。</p>
+</div>
+
+<div class="feature">
+<h3>📊 可视化设计</h3>
+<p>生成标准的电路原理图和专业的技术文档，支持多种格式导出。</p>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+<button class="btn" onclick="alert('完整版AI对话功能即将上线！\\n\\n当前提供基础展示功能，完整版开发中...')">🚀 开始设计</button>
+<a href="/diagnose.html" class="btn">🔧 系统诊断</a>
+</div>
+
+<div class="footer">
+<p>CircuitAI - 让电路设计更简单</p>
+<p>© 2025 版权所有</p>
+</div>
+</div>
 
 <script>
-document.getElementById('url').textContent = window.location.href;
-document.getElementById('time').textContent = new Date().toLocaleString('zh-CN');
-console.log('✅ CircuitAI SSL测试页面加载成功');
+console.log('✅ CircuitAI v3.0.0 静态版本加载完成');
+console.log('📅 时间:', new Date().toLocaleString('zh-CN'));
 </script>
 </body>
 </html>
