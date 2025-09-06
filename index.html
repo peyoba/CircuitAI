@@ -2,12 +2,29 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>CircuitAI</title>
+<title>CircuitAI SSL测试</title>
 </head>
 <body>
-<h1>CircuitAI</h1>
-<p>AI驱动的智能电路设计平台</p>
-<p>版本: v2.1.4-minimal</p>
-<p>状态: 正常运行</p>
+<h1>🔌 CircuitAI</h1>
+<p><strong>AI驱动的智能电路设计平台</strong></p>
+<hr>
+<p>✅ 如果您能看到此页面，说明SSL证书和部署都正常！</p>
+<p>📅 版本: v2.1.5-ssl-test</p>
+<p>🌐 当前访问地址: <span id="url"></span></p>
+<p>⏰ 加载时间: <span id="time"></span></p>
+
+<hr>
+<h2>🔗 测试链接：</h2>
+<ul>
+<li><a href="https://circuitai.top">https://circuitai.top</a> (主域名)</li>
+<li><a href="https://520d8775.circuitai.pages.dev">https://520d8775.circuitai.pages.dev</a> (Cloudflare Pages)</li>
+<li><a href="/basic.html">基础测试页面</a></li>
+</ul>
+
+<script>
+document.getElementById('url').textContent = window.location.href;
+document.getElementById('time').textContent = new Date().toLocaleString('zh-CN');
+console.log('✅ CircuitAI SSL测试页面加载成功');
+</script>
 </body>
 </html>
