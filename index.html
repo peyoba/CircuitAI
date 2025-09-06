@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI - 紧急部署测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+        h1 {
+            color: #1890ff;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .success {
+            background: #f6ffed;
+            color: #52c41a;
+            border: 2px solid #b7eb8f;
+        }
+        .info {
+            background: #e6f7ff;
+            color: #1890ff;
+            border: 2px solid #91d5ff;
+        }
+        .emoji {
+            font-size: 3em;
+            margin: 20px 0;
+        }
+        .actions {
+            margin-top: 30px;
+        }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+        }
+        button:hover {
+            background: #40a9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(24, 144, 255, 0.3);
+        }
+        .time {
+            margin-top: 20px;
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="emoji">🚀</div>
+        <h1>CircuitAI</h1>
+        <div class="subtitle">AI驱动的智能电路设计平台</div>
+        
+        <div class="status success">
+            ✅ 部署测试成功！网站基础服务正常运行
+        </div>
+        
+        <div class="status info">
+            🔧 主应用正在修复中，请稍后重试或联系技术支持
+        </div>
+        
+        <div class="status info" id="statusInfo">
+            📊 页面加载时间: <span id="loadTime">计算中...</span>
+        </div>
+        
+        <div class="actions">
+            <button onclick="testFunction()">功能测试</button>
+            <button onclick="goToGitHub()">查看源码</button>
+            <button onclick="contactSupport()">技术支持</button>
+        </div>
+        
+        <div id="testResult"></div>
+        
+        <div class="time">
+            最后更新: <span id="updateTime"></span>
+        </div>
+    </div>
+
+    <script>
+        const startTime = Date.now();
+        
+        // 页面加载完成处理
+        window.addEventListener('load', function() {
+            const loadTime = Date.now() - startTime;
+            document.getElementById('loadTime').textContent = loadTime + 'ms';
+            
+            const now = new Date();
+            document.getElementById('updateTime').textContent = now.toLocaleString('zh-CN');
+        });
+        
+        // 功能测试
+        function testFunction() {
+            const result = document.getElementById('testResult');
+            const testTime = new Date().toLocaleString('zh-CN');
+            
+            result.innerHTML = `
+                <div class="status success" style="margin-top: 20px;">
+                    🎉 JavaScript功能测试通过！<br>
+                    测试时间: ${testTime}<br>
+                    浏览器: ${navigator.userAgent.split(' ')[0]}<br>
+                    网络状态: ${navigator.onLine ? '在线' : '离线'}
+                </div>
+            `;
+            
+            // 控制台输出详细信息
+            console.log('=== CircuitAI 部署测试 ===');
+            console.log('✅ 基础HTML/CSS渲染正常');
+            console.log('✅ JavaScript功能正常');
+            console.log('✅ 事件处理正常');
+            console.log('📊 页面加载时间:', Date.now() - startTime, 'ms');
+            console.log('🌐 当前URL:', window.location.href);
+            console.log('📱 用户代理:', navigator.userAgent);
+        }
+        
+        function goToGitHub() {
+            window.open('https://github.com/peyoba/CircuitAI', '_blank');
+        }
+        
+        function contactSupport() {
+            alert('技术支持信息：\\n\\n如果主应用无法访问，说明部署配置需要调整。\\n\\n请联系开发团队或稍后重试。\\n\\n当前测试页面证明基础服务正常。');
+        }
+        
+        // 错误监控
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('页面错误:', msg, 'at', url + ':' + line);
+            return false;
+        };
+        
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ CircuitAI部署测试页面加载完成');
+            
+            // 自动运行基础测试
+            setTimeout(function() {
+                console.log('🔍 运行自动诊断...');
+                if (typeof testFunction === 'function') {
+                    console.log('✅ JavaScript函数正常');
+                } else {
+                    console.error('❌ JavaScript函数异常');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

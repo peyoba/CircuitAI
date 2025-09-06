@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI - 诊断页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 CircuitAI 问题诊断</h1>
+    
+    <div id="diagnostics"></div>
+    
+    <h2>🛠️ 解决方案</h2>
+    <button onclick="clearCache()">清除浏览器缓存</button>
+    <button onclick="disableExtensions()">检查扩展程序</button>
+    <button onclick="testIncognito()">无痕模式测试</button>
+    
+    <script>
+        function runDiagnostics() {
+            const diagnostics = document.getElementById('diagnostics');
+            let html = '<h2>📊 诊断结果</h2>';
+            
+            // 检查用户代理
+            html += `<div class="status info">
+                <strong>浏览器:</strong> ${navigator.userAgent}
+            </div>`;
+            
+            // 检查当前URL
+            html += `<div class="status info">
+                <strong>当前地址:</strong> ${window.location.href}
+            </div>`;
+            
+            // 检查控制台错误
+            const errors = [];
+            const originalError = console.error;
+            console.error = function(...args) {
+                errors.push(args.join(' '));
+                originalError.apply(console, args);
+            };
+            
+            // 检查是否有ref.js错误
+            setTimeout(() => {
+                const hasRefError = errors.some(err => err.includes('ref.js'));
+                if (hasRefError) {
+                    html += `<div class="status error">
+                        <strong>发现ref.js错误!</strong> 这通常由以下原因引起：<br>
+                        1. Google AdSense 脚本问题<br>
+                        2. 浏览器扩展干扰<br>
+                        3. 缓存问题
+                    </div>`;
+                } else {
+                    html += `<div class="status success">
+                        <strong>未检测到ref.js错误</strong>
+                    </div>`;
+                }
+                diagnostics.innerHTML = html;
+            }, 2000);
+            
+            // 检查扩展程序
+            if (window.chrome && chrome.runtime) {
+                html += `<div class="status info">
+                    <strong>检测到Chrome扩展程序</strong> - 可能导致脚本冲突
+                </div>`;
+            }
+            
+            // 检查网络连接
+            if (navigator.onLine) {
+                html += `<div class="status success">
+                    <strong>网络连接:</strong> 正常
+                </div>`;
+            } else {
+                html += `<div class="status error">
+                    <strong>网络连接:</strong> 离线
+                </div>`;
+            }
+            
+            diagnostics.innerHTML = html;
+        }
+        
+        function clearCache() {
+            alert('请按 Ctrl+Shift+Delete 打开清除数据窗口，选择"缓存图像和文件"，然后重新加载页面。');
+        }
+        
+        function disableExtensions() {
+            alert('请：\\n1. 点击Chrome右上角三个点菜单\\n2. 选择"扩展程序" > "管理扩展程序"\\n3. 暂时禁用所有扩展程序\\n4. 重新加载页面测试');
+        }
+        
+        function testIncognito() {
+            alert('请按 Ctrl+Shift+N 打开无痕模式，然后访问网站测试是否正常。');
+        }
+        
+        // 页面加载后运行诊断
+        window.onload = runDiagnostics;
+        
+        // 捕获未处理的错误
+        window.onerror = function(msg, url, line, col, error) {
+            const diagnostics = document.getElementById('diagnostics');
+            diagnostics.innerHTML += `<div class="status error">
+                <strong>JavaScript错误:</strong> ${msg}<br>
+                <strong>文件:</strong> ${url}:${line}:${col}
+            </div>`;
+            return false;
+        };
+    </script>
+</body>
+</html>

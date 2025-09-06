@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI - 基础测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        h1 { color: #1890ff; margin-bottom: 30px; }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover { background: #40a9ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 CircuitAI 基础功能测试</h1>
+        
+        <div class="status success">
+            ✅ 如果您看到这个页面，说明基本服务正常！
+        </div>
+        
+        <div class="status info">
+            📊 页面加载时间: <span id="loadTime">计算中...</span>
+        </div>
+        
+        <div class="status info">
+            🌐 当前地址: <span id="currentUrl"></span>
+        </div>
+        
+        <button onclick="testFunction()">测试JavaScript</button>
+        <button onclick="checkConsole()">检查控制台</button>
+        
+        <div id="testResult" style="margin-top: 20px;"></div>
+        
+        <hr style="margin: 30px 0;">
+        
+        <h2>📋 诊断信息</h2>
+        <div id="diagnostics"></div>
+    </div>
+
+    <script>
+        const startTime = Date.now();
+        
+        // 页面加载时间
+        window.addEventListener('load', function() {
+            const loadTime = Date.now() - startTime;
+            document.getElementById('loadTime').textContent = loadTime + 'ms';
+        });
+        
+        // 显示当前URL
+        document.getElementById('currentUrl').textContent = window.location.href;
+        
+        // 测试JavaScript功能
+        function testFunction() {
+            const result = document.getElementById('testResult');
+            const now = new Date().toLocaleString('zh-CN');
+            result.innerHTML = `
+                <div class="status success">
+                    🎉 JavaScript功能正常！<br>
+                    测试时间: ${now}
+                </div>
+            `;
+        }
+        
+        // 检查控制台
+        function checkConsole() {
+            console.log('✅ 控制台测试 - 如果您能看到这条消息，说明控制台正常');
+            console.log('📊 浏览器:', navigator.userAgent);
+            console.log('🌐 地址:', window.location.href);
+            alert('请打开控制台查看测试信息（F12 > Console）');
+        }
+        
+        // 运行诊断
+        function runDiagnostics() {
+            const diagnostics = document.getElementById('diagnostics');
+            let html = '';
+            
+            // 检查基本信息
+            html += `<div class="status info">
+                <strong>浏览器:</strong> ${navigator.userAgent.split(' ')[0]}
+            </div>`;
+            
+            html += `<div class="status info">
+                <strong>网络状态:</strong> ${navigator.onLine ? '在线' : '离线'}
+            </div>`;
+            
+            html += `<div class="status info">
+                <strong>页面协议:</strong> ${window.location.protocol}
+            </div>`;
+            
+            diagnostics.innerHTML = html;
+        }
+        
+        // 错误捕获
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('❌ 页面错误:', msg, 'at', url + ':' + line);
+            const diagnostics = document.getElementById('diagnostics');
+            diagnostics.innerHTML += `
+                <div class="status" style="background: #f8d7da; color: #721c24;">
+                    ❌ <strong>JavaScript错误:</strong> ${msg}<br>
+                    <strong>位置:</strong> ${url}:${line}:${col}
+                </div>
+            `;
+            return false;
+        };
+        
+        // 页面加载完成后运行
+        document.addEventListener('DOMContentLoaded', function() {
+            runDiagnostics();
+            console.log('✅ 测试页面加载完成');
+        });
+    </script>
+</body>
+</html>

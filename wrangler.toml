@@ -1,9 +1,6 @@
-# Build settings for Cloudflare Pages
-[build]
-  command = "npm run build:frontend"
-  publish = "frontend/dist"
+# Static site deployment for CircuitAI
+# This bypasses the complex build process temporarily
 
-# Environment variables can be set in Cloudflare Dashboard
-[build.environment]
-  NODE_VERSION = "18"
-  NPM_VERSION = "8"
+[build]
+  command = "echo 'Static deployment - no build needed'"
+  publish = "."
