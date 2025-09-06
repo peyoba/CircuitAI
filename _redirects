@@ -1,5 +1,1 @@
-# Cloudflare Pages 重定向配置
-# 只对特定的SPA路由进行重定向，不影响静态文件
-
-/app/* /index.html 200
-/design/* /index.html 200
+# 移除所有重定向规则进行测试
