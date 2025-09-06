@@ -1,6 +1,9 @@
-# Static site deployment for CircuitAI
-# This bypasses the complex build process temporarily
+# Cloudflare Pages configuration for CircuitAI
+name = "circuitai"
 
 [build]
-  command = "echo 'Static deployment - no build needed'"
-  publish = "."
+command = "echo 'Building CircuitAI...' && ls -la"
+publish = "."
+
+[build.environment]
+NODE_VERSION = "18"

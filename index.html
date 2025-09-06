@@ -1,184 +1,109 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CircuitAI - 紧急部署测试</title>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Temporarily disabled AdSense to fix ref.js version error -->
+    <!-- <meta name="google-adsense-account" content="ca-pub-6165370615688912"> -->
+    <title>CircuitsAI - AI-Powered Circuit Design Platform</title>
+    
+    <!-- 错误处理和加载指示器 -->
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 600px;
-            width: 90%;
-        }
-        h1 {
-            color: #1890ff;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        }
-        .subtitle {
-            color: #666;
-            font-size: 1.2em;
-            margin-bottom: 30px;
-        }
-        .status {
-            padding: 15px 20px;
-            margin: 15px 0;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 500;
-        }
-        .success {
-            background: #f6ffed;
-            color: #52c41a;
-            border: 2px solid #b7eb8f;
-        }
-        .info {
-            background: #e6f7ff;
-            color: #1890ff;
-            border: 2px solid #91d5ff;
-        }
-        .emoji {
-            font-size: 3em;
-            margin: 20px 0;
-        }
-        .actions {
-            margin-top: 30px;
-        }
-        button {
-            background: #1890ff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            margin: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
-        }
-        button:hover {
-            background: #40a9ff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(24, 144, 255, 0.3);
-        }
-        .time {
-            margin-top: 20px;
-            color: #999;
-            font-size: 14px;
-        }
+      #loading-fallback {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #f5f5f5;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #1890ff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .loading-text {
+        margin-top: 20px;
+        color: #666;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      }
+      .error-message {
+        color: #ff4d4f;
+        margin-top: 10px;
+        text-align: center;
+        max-width: 400px;
+      }
     </style>
-</head>
-<body>
-    <div class="container">
-        <div class="emoji">🚀</div>
-        <h1>CircuitAI</h1>
-        <div class="subtitle">AI驱动的智能电路设计平台</div>
-        
-        <div class="status success">
-            ✅ 部署测试成功！网站基础服务正常运行
-        </div>
-        
-        <div class="status info">
-            🔧 主应用正在修复中，请稍后重试或联系技术支持
-        </div>
-        
-        <div class="status info" id="statusInfo">
-            📊 页面加载时间: <span id="loadTime">计算中...</span>
-        </div>
-        
-        <div class="actions">
-            <button onclick="testFunction()">功能测试</button>
-            <button onclick="goToGitHub()">查看源码</button>
-            <button onclick="contactSupport()">技术支持</button>
-        </div>
-        
-        <div id="testResult"></div>
-        
-        <div class="time">
-            最后更新: <span id="updateTime"></span>
-        </div>
+    
+    <!-- Third-party analytics/ads temporarily disabled to avoid blocking -->
+    <script type="module" crossorigin src="/assets/index-0ae8a5e9.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-46267779.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-196c6b5f.js">
+    <link rel="modulepreload" crossorigin href="/assets/antd-icons-224a6422.js">
+    <link rel="modulepreload" crossorigin href="/assets/antd-forms-d358631e.js">
+    <link rel="modulepreload" crossorigin href="/assets/antd-feedback-0ffbfebd.js">
+    <link rel="modulepreload" crossorigin href="/assets/antd-others-e55acc79.js">
+    <link rel="modulepreload" crossorigin href="/assets/antd-core-b21eb6cb.js">
+    <link rel="modulepreload" crossorigin href="/assets/antd-layout-a3af7183.js">
+    <link rel="stylesheet" href="/assets/index-2abee980.css">
+  </head>
+  <body>
+    <!-- 加载指示器 -->
+    <div id="loading-fallback">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">正在加载 CircuitAI...</div>
+      <div id="error-info" class="error-message" style="display: none;">
+        应用加载遇到问题，请刷新页面重试
+      </div>
     </div>
-
+    
+    <div id="root"></div>
+    
+    <!-- 主应用启动脚本 -->
     <script>
-        const startTime = Date.now();
-        
-        // 页面加载完成处理
-        window.addEventListener('load', function() {
-            const loadTime = Date.now() - startTime;
-            document.getElementById('loadTime').textContent = loadTime + 'ms';
-            
-            const now = new Date();
-            document.getElementById('updateTime').textContent = now.toLocaleString('zh-CN');
-        });
-        
-        // 功能测试
-        function testFunction() {
-            const result = document.getElementById('testResult');
-            const testTime = new Date().toLocaleString('zh-CN');
-            
-            result.innerHTML = `
-                <div class="status success" style="margin-top: 20px;">
-                    🎉 JavaScript功能测试通过！<br>
-                    测试时间: ${testTime}<br>
-                    浏览器: ${navigator.userAgent.split(' ')[0]}<br>
-                    网络状态: ${navigator.onLine ? '在线' : '离线'}
-                </div>
-            `;
-            
-            // 控制台输出详细信息
-            console.log('=== CircuitAI 部署测试 ===');
-            console.log('✅ 基础HTML/CSS渲染正常');
-            console.log('✅ JavaScript功能正常');
-            console.log('✅ 事件处理正常');
-            console.log('📊 页面加载时间:', Date.now() - startTime, 'ms');
-            console.log('🌐 当前URL:', window.location.href);
-            console.log('📱 用户代理:', navigator.userAgent);
+      // 错误处理和超时检测
+      setTimeout(function() {
+        var loading = document.getElementById('loading-fallback');
+        var error = document.getElementById('error-info');
+        if (loading && loading.style.display !== 'none') {
+          error.style.display = 'block';
         }
-        
-        function goToGitHub() {
-            window.open('https://github.com/peyoba/CircuitAI', '_blank');
+      }, 10000); // 10秒超时
+      
+      // 仅在window load后隐藏（避免本地直接打开时空白）
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var loading = document.getElementById('loading-fallback');
+          if (loading) {
+            loading.style.display = 'none';
+          }
+        }, 300);
+      });
+
+      // 本地直接打开文件时给出提示
+      document.addEventListener('DOMContentLoaded', function() {
+        if (location.protocol === 'file:') {
+          var error = document.getElementById('error-info');
+          if (error) {
+            error.textContent = '请通过开发服务器访问：在 frontend 目录执行 npm install && npm run dev，然后打开 http://localhost:3002';
+            error.style.display = 'block';
+          }
         }
-        
-        function contactSupport() {
-            alert('技术支持信息：\\n\\n如果主应用无法访问，说明部署配置需要调整。\\n\\n请联系开发团队或稍后重试。\\n\\n当前测试页面证明基础服务正常。');
-        }
-        
-        // 错误监控
-        window.onerror = function(msg, url, line, col, error) {
-            console.error('页面错误:', msg, 'at', url + ':' + line);
-            return false;
-        };
-        
-        // 页面初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ CircuitAI部署测试页面加载完成');
-            
-            // 自动运行基础测试
-            setTimeout(function() {
-                console.log('🔍 运行自动诊断...');
-                if (typeof testFunction === 'function') {
-                    console.log('✅ JavaScript函数正常');
-                } else {
-                    console.error('❌ JavaScript函数异常');
-                }
-            }, 1000);
-        });
+      });
     </script>
-</body>
+    
+  </body>
 </html>
