@@ -1,0 +1,9 @@
+# Build settings for Cloudflare Pages
+[build]
+  command = "npm run build:frontend"
+  publish = "frontend/dist"
+
+# Environment variables can be set in Cloudflare Dashboard
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "8"

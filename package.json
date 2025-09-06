@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
+    "build:frontend": "npm install --prefix frontend && cd frontend && npm run build",
     "preview": "cd frontend && npm run preview",
     "lint": "cd frontend && npm run lint",
     "test": "cd frontend && npm run test",
