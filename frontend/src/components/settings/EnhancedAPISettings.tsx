@@ -3,7 +3,7 @@ import { Modal, Form, Input, Select, Button, message, Space, Card, Alert, Divide
 import { useI18n } from '../../i18n/I18nProvider'
 import { SettingOutlined, EyeInvisibleOutlined, EyeTwoTone, CheckOutlined, PlusOutlined } from '@ant-design/icons'
 import { aiAPI } from '../../services/api'
-import { ApiTestRequest } from '../../../../shared/src/types/index'
+import { ApiTestRequest } from '../../types'
 
 
 interface APIConfig {

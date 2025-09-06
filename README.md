@@ -1,10 +1,39 @@
 # CircuitAI - 智能电路设计平台
 
 [![开发状态](https://img.shields.io/badge/开发状态-Phase%202%20完成-brightgreen)](https://github.com/peyoba/CircuitAI)
-[![技术栈](https://img.shields.io/badge/技术栈-React%20%2B%20Node.js%20%2B%20TypeScript-blue)](https://github.com/peyoba/CircuitAI)
+[![技术栈](https://img.shields.io/badge/技术栈-React%20%2B%20Cloudflare%20Workers%20%2B%20TypeScript-blue)](https://github.com/peyoba/CircuitAI)
 [![AI支持](https://img.shields.io/badge/AI支持-OpenAI%20%2B%20Claude%20%2B%20Gemini-orange)](https://github.com/peyoba/CircuitAI)
 
 > 🎯 **项目愿景**: 通过人工智能让复杂的电路设计变得简单易懂，即使是初学者也能设计出专业可靠的电路方案。
+
+🌐 **在线体验**: [https://circuitai.top](https://circuitai.top)
+
+## 🏗️ 项目架构
+
+### 🌟 现代化全栈架构
+- **前端**: React + TypeScript + Vite + Ant Design
+- **后端**: Cloudflare Workers + Hono框架  
+- **部署**: Cloudflare Pages (前端) + Cloudflare Workers (API)
+- **特点**: 无服务器、边缘计算、全球低延迟
+
+### 📁 项目结构
+```
+CircuitAI/
+├── frontend/          # React前端应用
+│   ├── src/
+│   │   ├── components/    # React组件
+│   │   ├── pages/         # 页面组件  
+│   │   ├── services/      # API服务
+│   │   └── stores/        # 状态管理
+│   └── package.json
+├── workers/           # Cloudflare Workers API
+│   ├── src/
+│   │   ├── services/      # AI服务和业务逻辑
+│   │   └── index.ts       # Workers入口
+│   └── wrangler.toml     # Workers配置
+├── docs/              # 项目文档
+└── package.json       # 主项目配置
+```
 
 ## ✨ 核心特性
 
@@ -44,22 +73,39 @@
 git clone https://github.com/peyoba/CircuitAI.git
 cd CircuitAI
 
+## 🚀 快速开始
+
+### 开发环境搭建
+
+```bash
+# 克隆项目
+git clone https://github.com/peyoba/CircuitAI.git
+cd CircuitAI
+
 # 安装所有依赖
 npm run install:all
 
-# 启动开发环境（同时启动前后端）
+# 启动前端开发环境
 npm run dev
 
-# 或分别启动
-npm run dev:backend  # 后端服务 http://localhost:3003
-npm run dev:frontend # 前端应用 http://localhost:3002
+# 本地开发Workers API (可选)
+npm run deploy:dev
 ```
 
 ### 首次使用
 1. 访问 http://localhost:3002
-2. 点击左侧AI助手的设置按钮⚙️配置API密钥（可选）
+2. 点击左侧AI助手的设置按钮⚙️配置API密钥（可选，有默认API）
 3. 在对话框输入："设计一个LED闪烁电路"
 4. 查看生成的电路图和BOM清单
+
+### 生产部署
+```bash
+# 部署前端到Cloudflare Pages
+npm run build
+
+# 部署Workers API
+npm run deploy:workers
+```
 
 ## 💡 使用示例
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Modal, Form, Input, Select, Button, message, Space, Card, Alert, AutoComplete } from 'antd'
 import { SettingOutlined, EyeInvisibleOutlined, EyeTwoTone, CheckOutlined } from '@ant-design/icons'
 import { aiAPI } from '../../services/api'
-import { APIConfig, ApiTestRequest } from '../../../../shared/src/types/index'
+import { APIConfig, ApiTestRequest } from '../../types'
 
 
 interface APISettingsProps {

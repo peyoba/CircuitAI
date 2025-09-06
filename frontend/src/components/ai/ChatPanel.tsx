@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { Input, Button, Avatar, message, Spin, Select } from 'antd'
 import { SendOutlined, UserOutlined, RobotOutlined, ClearOutlined, DownloadOutlined, SettingOutlined } from '@ant-design/icons'
-import { ChatMessage } from '../../../../shared/src/types/index'
+import { ChatMessage } from '../../types'
 import { aiAPI } from '../../services/api'
 import StatusIndicator from '../common/StatusIndicator'
 import RequirementCardSidebar, { Requirements } from './RequirementCardSidebar'

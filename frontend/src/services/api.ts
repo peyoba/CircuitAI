@@ -7,7 +7,7 @@ import {
   ApiTestRequest, 
   ApiTestResponse,
   ComponentInfo 
-} from '../../../shared/src/types/index'
+} from '../types'
 
 // 动态获取API基础URL
 const getApiBaseUrl = () => {
