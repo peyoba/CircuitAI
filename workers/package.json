@@ -4,7 +4,9 @@
   "description": "CircuitAI Cloudflare Workers API",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --port=3003",
+    "dev:local": "wrangler dev --local --port=3003",
+    "dev:remote": "wrangler dev --remote --port=3003",
     "build": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy --env=\"\"",
     "deploy:staging": "wrangler deploy --env staging",
