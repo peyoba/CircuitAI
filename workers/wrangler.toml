@@ -5,4 +5,6 @@ compatibility_date = "2024-01-01"
 [vars]
 ENVIRONMENT = "production"
 CORS_ORIGIN = "*"
-DEFAULT_GEMINI_API_KEY = "AIzaSyCmuoDi9hHuMteG0yCY_WAmtumx_DS8z-k"
+# 安全说明：不要在 wrangler.toml 中存放任何真实密钥。
+# 请使用以下命令在 Cloudflare 中以 Secret 方式注入：
+#   wrangler secret put DEFAULT_GEMINI_API_KEY

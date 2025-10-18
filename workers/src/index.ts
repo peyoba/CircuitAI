@@ -71,9 +71,9 @@ app.post('/api/ai/chat', async (c) => {
       }
     }
     
-    // 初始化AI服务
+    // 初始化AI服务（传入运行时环境变量）
     console.log('初始化AI服务...')
-    const aiService = new AIService()
+    const aiService = new AIService(c.env as any)
     
     // 处理聊天请求
     console.log('开始处理聊天请求，provider:', provider)
@@ -103,8 +103,8 @@ app.post('/api/ai/test-config', async (c) => {
   try {
     const config = await c.req.json()
     
-    // 测试API配置
-    const aiService = new AIService()
+    // 测试API配置（传入运行时环境变量）
+    const aiService = new AIService(c.env as any)
     const result = await aiService.testConfig(config)
     
     return c.json({
