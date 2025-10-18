@@ -1,0 +1,8 @@
+# 本地开发用的 Secrets 示例文件（不要提交真实密钥）
+# 使用方法：
+# 1) 复制为 .dev.vars： cp .dev.vars.example .dev.vars
+# 2) 替换下面的占位内容为你的真实密钥
+# 3) 运行本地模式： npm run dev:local
+
+# Google Gemini API Key（必填，用于“智能AI助手”默认提供商）
+DEFAULT_GEMINI_API_KEY="替换为你的Gemini API密钥"
