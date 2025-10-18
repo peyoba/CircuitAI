@@ -1,18 +1,23 @@
 // 简化版AI服务，适配Cloudflare Workers
 export class AIService {
+  // 运行时环境变量（通过 Hono c.env 传入），避免使用 process.env
+  private env: Record<string, string | undefined>
+
+  constructor(env?: Record<string, string | undefined>) {
+    this.env = env || {}
+  }
+
   // 🔥 修复：使用更可靠的对话历史存储机制
   private static conversations: Map<string, Array<{role: string, content: string}>> = new Map()
   
-  // 🔥 新增：默认API配置支持
-  private static getDefaultAPIConfig() {
-    // 从环境变量获取默认Gemini API配置
-    const defaultApiKey = typeof process !== 'undefined' ? process.env?.DEFAULT_GEMINI_API_KEY : null
-    const backupKey = 'AIzaSyCmuoDi9hHuMteG0yCY_WAmtumx_DS8z-k'
-    
-    const apiKey = defaultApiKey || backupKey
-    
-    if (apiKey === backupKey) {
-      console.warn('⚠️  使用备用API密钥，建议设置环境变量 DEFAULT_GEMINI_API_KEY')
+  // 🔥 新增：默认API配置支持（仅从运行时环境获取，不再内置任何明文密钥）
+  private getDefaultAPIConfig() {
+    const apiKey = this.env?.DEFAULT_GEMINI_API_KEY
+
+    if (!apiKey) {
+      // 不再提供任何代码内置的后备密钥，强制要求在 Cloudflare 上配置 secret
+      // 使用命令：wrangler secret put DEFAULT_GEMINI_API_KEY
+      throw new Error('系统未配置默认AI密钥：请在 Cloudflare Workers 中设置 secret DEFAULT_GEMINI_API_KEY')
     }
     
     return {

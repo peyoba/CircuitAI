@@ -125,6 +125,16 @@ ENVIRONMENT = "production"
 CORS_ORIGIN = "*"
 ```
 
+⚠️ 注意：不要把任何真实密钥写入 wrangler.toml。请使用 Cloudflare Secrets 注入。
+
+**Workers Secrets（敏感密钥）**：
+- 默认内置 AI（Gemini）所需的密钥请以 Secret 方式设置：
+  ```bash
+  cd workers
+  wrangler secret put DEFAULT_GEMINI_API_KEY
+  ```
+- 部署后，后端会从运行时环境中读取该密钥。若未设置，默认 AI 将不可用并返回明确错误提示。
+
 **前端环境检测** (自动配置):
 - 本地开发：`http://localhost:3003/api`
 - 生产环境：`https://circuitai-api.peyoba660703.workers.dev/api`
