@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI - 简单测试页</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { margin-top: 0; }
+        .status { 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .success { background: rgba(76, 175, 80, 0.3); }
+        .error { background: rgba(244, 67, 54, 0.3); }
+        button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { opacity: 0.8; }
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 CircuitAI 部署测试</h1>
+        
+        <div class="status success">
+            <strong>✅ 静态页面加载成功！</strong><br>
+            这说明Vercel部署基本正常。
+        </div>
+
+        <h2>测试功能</h2>
+        
+        <button onclick="testAPI()">测试 API 健康检查</button>
+        <button onclick="testMainApp()">打开主应用</button>
+        <button onclick="clearCache()">清除缓存并刷新</button>
+        
+        <div id="result"></div>
+
+        <h2>环境信息</h2>
+        <pre id="env-info"></pre>
+
+        <h2>常见问题</h2>
+        <div class="status">
+            <strong>如果主应用空白：</strong><br>
+            1. 按 Ctrl+Shift+Delete (或 Cmd+Shift+Delete) 清除缓存<br>
+            2. 使用无痕/隐私模式打开<br>
+            3. 禁用所有浏览器扩展（特别是广告拦截器）<br>
+            4. 检查浏览器控制台的错误信息
+        </div>
+
+        <div class="status">
+            <strong>ref.js 错误：</strong><br>
+            这通常是浏览器扩展引起的，不影响应用功能。<br>
+            建议在无痕模式下测试。
+        </div>
+    </div>
+
+    <script>
+        // 显示环境信息
+        document.getElementById('env-info').textContent = JSON.stringify({
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+            timestamp: new Date().toISOString(),
+            viewport: `${window.innerWidth}x${window.innerHeight}`
+        }, null, 2);
+
+        async function testAPI() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<div class="status">⏳ 测试中...</div>';
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                result.innerHTML = `
+                    <div class="status success">
+                        <strong>✅ API 测试成功！</strong><br>
+                        状态: ${data.data?.status || 'ok'}<br>
+                        消息: ${data.message || 'N/A'}<br>
+                        版本: ${data.data?.version || 'N/A'}
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ API 测试失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function testMainApp() {
+            window.location.href = '/';
+        }
+
+        function clearCache() {
+            if (confirm('这将清除缓存并刷新页面，确定吗？')) {
+                // 清除localStorage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // 强制刷新
+                window.location.reload(true);
+            }
+        }
+
+        console.log('✅ 测试页面加载成功');
+        console.log('📍 当前URL:', window.location.href);
+        console.log('🌐 User Agent:', navigator.userAgent);
+    </script>
+</body>
+</html>

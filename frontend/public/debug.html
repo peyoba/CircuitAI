@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI 调试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: #52c41a; }
+        .error { color: #ff4d4f; }
+        .warning { color: #faad14; }
+        h1 { color: #1890ff; }
+        h2 { color: #333; border-bottom: 2px solid #1890ff; padding-bottom: 10px; }
+        pre {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .test-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #1890ff;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 CircuitAI 部署调试页面</h1>
+    
+    <div class="section">
+        <h2>1. 环境信息</h2>
+        <div id="env-info"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. 资源加载测试</h2>
+        <div id="resource-test"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. API端点测试</h2>
+        <div id="api-test"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. 控制台错误</h2>
+        <div id="console-errors"></div>
+    </div>
+
+    <script>
+        // 收集控制台错误
+        const errors = [];
+        const originalError = console.error;
+        console.error = function(...args) {
+            errors.push(args.join(' '));
+            originalError.apply(console, args);
+        };
+
+        // 1. 环境信息
+        document.getElementById('env-info').innerHTML = `
+            <div class="test-item">
+                <strong>URL:</strong> ${window.location.href}<br>
+                <strong>协议:</strong> ${window.location.protocol}<br>
+                <strong>主机:</strong> ${window.location.host}<br>
+                <strong>路径:</strong> ${window.location.pathname}<br>
+                <strong>User Agent:</strong> ${navigator.userAgent}
+            </div>
+        `;
+
+        // 2. 资源加载测试
+        async function testResources() {
+            const resources = [
+                '/vite.svg',
+                '/assets/index-ab51c9fa.css',
+                '/api/health'
+            ];
+
+            let html = '';
+            for (const resource of resources) {
+                try {
+                    const response = await fetch(resource);
+                    const status = response.ok ? 
+                        `<span class="success">✅ ${response.status}</span>` : 
+                        `<span class="error">❌ ${response.status}</span>`;
+                    html += `<div class="test-item">${resource}: ${status}</div>`;
+                } catch (error) {
+                    html += `<div class="test-item">${resource}: <span class="error">❌ ${error.message}</span></div>`;
+                }
+            }
+            document.getElementById('resource-test').innerHTML = html;
+        }
+
+        // 3. API测试
+        async function testAPI() {
+            let html = '';
+            
+            // 测试健康检查
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                html += `<div class="test-item">
+                    <strong>健康检查:</strong> <span class="success">✅ 成功</span><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>`;
+            } catch (error) {
+                html += `<div class="test-item">
+                    <strong>健康检查:</strong> <span class="error">❌ ${error.message}</span>
+                </div>`;
+            }
+
+            // 测试AI配置测试端点
+            try {
+                const response = await fetch('/api/ai/test-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: 'mock',
+                        apiUrl: 'test',
+                        apiKey: 'test',
+                        model: 'test'
+                    })
+                });
+                const data = await response.json();
+                html += `<div class="test-item">
+                    <strong>AI配置测试:</strong> <span class="success">✅ 成功</span><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>`;
+            } catch (error) {
+                html += `<div class="test-item">
+                    <strong>AI配置测试:</strong> <span class="error">❌ ${error.message}</span>
+                </div>`;
+            }
+
+            document.getElementById('api-test').innerHTML = html;
+        }
+
+        // 4. 显示控制台错误
+        function showErrors() {
+            setTimeout(() => {
+                const errorDiv = document.getElementById('console-errors');
+                if (errors.length > 0) {
+                    errorDiv.innerHTML = `
+                        <div class="test-item">
+                            <span class="error">发现 ${errors.length} 个错误:</span>
+                            <pre>${errors.join('\n')}</pre>
+                        </div>
+                    `;
+                } else {
+                    errorDiv.innerHTML = `
+                        <div class="test-item">
+                            <span class="success">✅ 没有控制台错误</span>
+                        </div>
+                    `;
+                }
+            }, 2000);
+        }
+
+        // 运行所有测试
+        testResources();
+        testAPI();
+        showErrors();
+
+        console.log('✅ 调试页面加载完成');
+    </script>
+</body>
+</html>
