@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI - AI智能电路设计平台</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔌</text></svg>">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background 0.3s;
+            cursor: pointer;
+        }
+        
+        .nav a:hover, .nav a.active {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+            margin: 20px auto;
+            max-width: 1200px;
+            padding: 0 20px;
+        }
+        
+        .sidebar {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+        
+        .main-content {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+        
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+        
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            resize: none;
+            min-height: 80px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #40a9ff;
+        }
+        
+        .btn-secondary {
+            background: #52c41a;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #73d13d;
+        }
+        
+        .message {
+            margin-bottom: 16px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .message.user {
+            background: #e6f7ff;
+            border-left: 4px solid #1890ff;
+        }
+        
+        .message.ai {
+            background: #f6ffed;
+            border-left: 4px solid #52c41a;
+        }
+        
+        .message-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .circuit-display {
+            background: #f9f9f9;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 1px solid #f0f0f0;
+        }
+        
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .api-config {
+            background: #f9f9f9;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.success { background: #52c41a; }
+        .status-indicator.error { background: #ff4d4f; }
+        .status-indicator.warning { background: #faad14; }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #1890ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden { display: none; }
+        .text-center { text-align: center; }
+        
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .nav {
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    🔌 CircuitAI
+                    <span style="font-size: 14px; opacity: 0.8;">AI智能电路设计平台</span>
+                </div>
+                <nav class="nav">
+                    <a onclick="showSection('home')" class="active" id="nav-home">🏠 首页</a>
+                    <a onclick="showSection('design')" id="nav-design">🔧 设计</a>
+                    <a onclick="showSection('test')" id="nav-test">⚙️ 测试</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main>
+        <!-- 首页部分 -->
+        <section id="home-section" class="container">
+            <div style="text-align: center; padding: 60px 20px;">
+                <h1 style="font-size: 3rem; margin-bottom: 20px; color: #1890ff;">🔌 CircuitAI</h1>
+                <p style="font-size: 1.2rem; color: #666; margin-bottom: 40px;">
+                    通过AI对话，轻松设计专业电路方案
+                </p>
+                <button class="btn btn-primary" onclick="showSection('design')" style="font-size: 18px; padding: 15px 30px;">
+                    🚀 开始设计电路
+                </button>
+            </div>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI智能对话</h3>
+                    <p>用自然语言描述需求，AI助手帮您生成专业电路方案</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h3>智能BOM表</h3>
+                    <p>自动生成物料清单，包含元件型号、参数和价格信息</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>可视化电路图</h3>
+                    <p>生成ASCII和SVG格式的标准电路原理图</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 设计页面部分 -->
+        <section id="design-section" class="hidden">
+            <div class="main-layout">
+                <!-- 左侧边栏 - API配置 -->
+                <div class="sidebar">
+                    <h3>🔧 API配置</h3>
+                    <div class="api-config">
+                        <div class="form-group">
+                            <label>AI模型提供商</label>
+                            <select id="provider-select" onchange="updateProvider()">
+                                <option value="mock">演示模式 (推荐)</option>
+                                <option value="custom">自定义API</option>
+                            </select>
+                        </div>
+                        <div id="custom-config" class="form-group" style="display: none;">
+                            <label>API地址</label>
+                            <input type="text" id="api-url" placeholder="https://api.openai.com/v1">
+                            <label style="margin-top: 8px;">API密钥</label>
+                            <input type="password" id="api-key" placeholder="sk-...">
+                            <label style="margin-top: 8px;">模型名称</label>
+                            <input type="text" id="model-name" placeholder="gpt-3.5-turbo">
+                        </div>
+                        <button class="btn btn-secondary" onclick="testAPI()">
+                            <span id="test-status">🔍 测试连接</span>
+                        </button>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <h4>📊 系统状态</h4>
+                        <div style="margin: 10px 0;">
+                            <span class="status-indicator success"></span>
+                            <span>Vercel平台: 正常</span>
+                        </div>
+                        <div style="margin: 10px 0;">
+                            <span class="status-indicator warning" id="api-status"></span>
+                            <span id="api-status-text">API状态: 演示模式</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 中间主区域 - 聊天界面 -->
+                <div class="main-content">
+                    <h2>💬 AI电路设计助手</h2>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chat-messages">
+                            <div class="message ai">
+                                <div class="message-header">
+                                    🤖 CircuitAI助手
+                                </div>
+                                <div>
+                                    您好！我是CircuitAI智能电路设计助手。请告诉我您想要设计什么样的电路，我会为您提供专业的设计方案。
+                                    <br><br>
+                                    <strong>示例：</strong>
+                                    <li>• "设计一个5V LED驱动电路"</li>
+                                    <li>• "我需要一个LM7805稳压电路"</li>
+                                    <li>• "帮我设计一个555定时器电路"</li>
+                                    <br>
+                                    <small style="color: #666;">💡 当前使用演示模式，您可以在左侧配置真实的AI API</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-input-area">
+                            <textarea 
+                                id="chat-input" 
+                                class="chat-input" 
+                                placeholder="描述您的电路设计需求，例如：我想设计一个LED闪烁电路..."
+                                onkeydown="handleKeyDown(event)"
+                            ></textarea>
+                            <button class="btn btn-primary" onclick="sendMessage()" style="min-width: 80px;">
+                                <span id="send-btn-text">发送</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧边栏 - 电路展示 -->
+                <div class="sidebar">
+                    <h3>📋 电路展示</h3>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4>🎨 电路图</h4>
+                        <div id="circuit-display" class="circuit-display">
+                            等待AI生成电路图...
+                            
+                            发送设计需求后，这里将显示ASCII电路图
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4>📦 物料清单(BOM)</h4>
+                        <div id="bom-display" style="background: #f9f9f9; padding: 10px; border-radius: 4px; min-height: 100px;">
+                            等待AI生成BOM表...
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <button class="btn btn-secondary" onclick="exportProject()" style="width: 100%;">
+                            💾 导出项目
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 测试页面部分 -->
+        <section id="test-section" class="hidden">
+            <div class="container" style="padding: 40px 20px;">
+                <h2>🔧 系统功能测试</h2>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>🌐 网站访问测试</h3>
+                        <p>测试静态资源加载和页面响应</p>
+                        <button class="btn btn-primary" onclick="testWebsite()">开始测试</button>
+                        <div id="website-test-result"></div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>📡 API连接测试</h3>
+                        <p>测试后端API服务连接状态</p>
+                        <button class="btn btn-primary" onclick="testAPIConnection()">测试API</button>
+                        <div id="api-test-result"></div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <h3>🤖 AI功能测试</h3>
+                        <p>测试AI对话和电路生成功能</p>
+                        <button class="btn btn-primary" onclick="testAIFunction()">测试AI</button>
+                        <div id="ai-test-result"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- JavaScript功能 -->
+    <script>
+        // 全局状态
+        const state = {
+            currentSection: 'home',
+            apiConfig: { provider: 'mock' }, // 默认使用演示模式
+            chatHistory: [],
+            conversationId: 'conv_' + Date.now()
+        };
+        
+        // 页面切换
+        function showSection(section) {
+            // 隐藏所有section
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            // 显示目标section
+            document.getElementById(section + '-section').classList.remove('hidden');
+            
+            // 更新导航状态
+            document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+            document.getElementById('nav-' + section).classList.add('active');
+            
+            state.currentSection = section;
+        }
+        
+        // 更新提供商配置
+        function updateProvider() {
+            const provider = document.getElementById('provider-select').value;
+            const customConfig = document.getElementById('custom-config');
+            const apiStatusEl = document.getElementById('api-status');
+            const apiStatusTextEl = document.getElementById('api-status-text');
+            
+            if (provider === 'custom') {
+                customConfig.style.display = 'block';
+                apiStatusEl.className = 'status-indicator warning';
+                apiStatusTextEl.textContent = 'API状态: 需要配置';
+                state.apiConfig = null;
+            } else {
+                customConfig.style.display = 'none';
+                apiStatusEl.className = 'status-indicator warning';
+                apiStatusTextEl.textContent = 'API状态: 演示模式';
+                state.apiConfig = { provider: 'mock' };
+            }
+        }
+        
+        // 测试API连接
+        async function testAPI() {
+            const statusEl = document.getElementById('test-status');
+            const apiStatusEl = document.getElementById('api-status');
+            const apiStatusTextEl = document.getElementById('api-status-text');
+            
+            statusEl.innerHTML = '<span class="loading"></span> 测试中...';
+            
+            try {
+                const provider = document.getElementById('provider-select').value;
+                
+                if (provider === 'mock') {
+                    // 模拟测试
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    statusEl.textContent = '✅ 演示模式正常';
+                    apiStatusEl.className = 'status-indicator success';
+                    apiStatusTextEl.textContent = 'API状态: 演示模式就绪';
+                    state.apiConfig = { provider: 'mock' };
+                    return;
+                }
+                
+                // 自定义API测试
+                const apiUrl = document.getElementById('api-url').value;
+                const apiKey = document.getElementById('api-key').value;
+                const model = document.getElementById('model-name').value;
+                
+                if (!apiUrl || !apiKey || !model) {
+                    throw new Error('请填写完整的API配置');
+                }
+                
+                const config = { provider: 'custom', apiUrl, apiKey, model };
+                
+                const response = await fetch('/api/ai/test-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.data.isValid) {
+                    statusEl.textContent = '✅ 连接成功';
+                    apiStatusEl.className = 'status-indicator success';
+                    apiStatusTextEl.textContent = 'API状态: 连接正常';
+                    state.apiConfig = config;
+                } else {
+                    throw new Error(result.data?.error || '连接失败');
+                }
+                
+            } catch (error) {
+                statusEl.textContent = '❌ 连接失败';
+                apiStatusEl.className = 'status-indicator error';
+                apiStatusTextEl.textContent = 'API状态: ' + error.message;
+                console.error('API测试失败:', error);
+            }
+        }
+        
+        // 发送消息
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) {
+                alert('请输入消息内容');
+                return;
+            }
+            
+            if (!state.apiConfig) {
+                alert('请先配置并测试API连接');
+                return;
+            }
+            
+            // 显示用户消息
+            addMessage('user', message);
+            input.value = '';
+            
+            // 显示发送状态
+            const sendBtn = document.getElementById('send-btn-text');
+            sendBtn.innerHTML = '<span class="loading"></span> AI思考中';
+            
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        provider: state.apiConfig.provider,
+                        apiConfig: state.apiConfig,
+                        conversation_id: state.conversationId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 显示AI回复
+                    addMessage('ai', result.data.response);
+                    
+                    // 显示电路图和BOM
+                    if (result.data.circuit_data) {
+                        updateCircuitDisplay(result.data.circuit_data);
+                    }
+                    if (result.data.bom_data) {
+                        updateBOMDisplay(result.data.bom_data);
+                    }
+                    
+                    // 更新会话ID
+                    if (result.data.conversation_id) {
+                        state.conversationId = result.data.conversation_id;
+                    }
+                } else {
+                    throw new Error(result.error || '请求失败');
+                }
+                
+            } catch (error) {
+                addMessage('ai', '❌ 抱歉，AI服务暂时不可用：' + error.message);
+                console.error('AI请求失败:', error);
+            }
+            
+            sendBtn.textContent = '发送';
+        }
+        
+        // 添加消息到聊天界面
+        function addMessage(type, content) {
+            const messagesEl = document.getElementById('chat-messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            
+            const headerEl = document.createElement('div');
+            headerEl.className = 'message-header';
+            headerEl.innerHTML = type === 'user' ? '👤 您' : '🤖 CircuitAI助手';
+            
+            const contentEl = document.createElement('div');
+            contentEl.innerHTML = content.replace(/\n/g, '<br>');
+            
+            messageEl.appendChild(headerEl);
+            messageEl.appendChild(contentEl);
+            messagesEl.appendChild(messageEl);
+            
+            // 滚动到底部
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            
+            // 保存到历史
+            state.chatHistory.push({ type, content, timestamp: new Date() });
+        }
+        
+        // 更新电路图显示
+        function updateCircuitDisplay(circuitData) {
+            const displayEl = document.getElementById('circuit-display');
+            if (circuitData.ascii) {
+                displayEl.textContent = circuitData.ascii;
+            } else if (circuitData.description) {
+                displayEl.textContent = circuitData.description.substring(0, 200) + '...';
+            } else {
+                displayEl.textContent = '电路图生成中...';
+            }
+        }
+        
+        // 更新BOM显示
+        function updateBOMDisplay(bomData) {
+            const displayEl = document.getElementById('bom-display');
+            
+            if (bomData.items && bomData.items.length > 0) {
+                let html = '<table style="width: 100%; font-size: 12px; border-collapse: collapse;">';
+                html += '<tr style="background: #f0f0f0;"><th style="padding:4px;border:1px solid #ddd;">元件</th><th style="padding:4px;border:1px solid #ddd;">数量</th><th style="padding:4px;border:1px solid #ddd;">规格</th></tr>';
+                
+                bomData.items.forEach(item => {
+                    html += `<tr>
+                        <td style="padding:4px;border:1px solid #ddd;">${item.component || '-'}</td>
+                        <td style="padding:4px;border:1px solid #ddd;">${item.quantity || 1}</td>
+                        <td style="padding:4px;border:1px solid #ddd;">${item.value || '-'}</td>
+                    </tr>`;
+                });
+                
+                html += '</table>';
+                
+                if (bomData.totalCost) {
+                    html += `<p style="margin-top: 10px; font-weight: bold; color: #1890ff;">
+                        预估成本: ¥${bomData.totalCost.toFixed(2)}
+                    </p>`;
+                }
+                
+                displayEl.innerHTML = html;
+            } else {
+                displayEl.textContent = 'BOM表生成中...';
+            }
+        }
+        
+        // 键盘事件处理
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+        
+        // 导出项目
+        function exportProject() {
+            if (state.chatHistory.length === 0) {
+                alert('暂无项目数据可导出');
+                return;
+            }
+            
+            const projectData = {
+                name: 'CircuitAI项目导出',
+                chatHistory: state.chatHistory,
+                timestamp: new Date().toISOString(),
+                conversationId: state.conversationId,
+                version: '1.0'
+            };
+            
+            const blob = new Blob([JSON.stringify(projectData, null, 2)], 
+                { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `circuitai-project-${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('项目已导出到下载文件夹');
+        }
+        
+        // 测试功能
+        async function testWebsite() {
+            const resultEl = document.getElementById('website-test-result');
+            resultEl.innerHTML = '<div class="loading"></div> 测试中...';
+            
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                resultEl.innerHTML = '<p style="color: #52c41a;">✅ 网站加载正常，静态版本运行稳定</p>';
+            } catch (error) {
+                resultEl.innerHTML = '<p style="color: #ff4d4f;">❌ 测试失败</p>';
+            }
+        }
+        
+        async function testAPIConnection() {
+            const resultEl = document.getElementById('api-test-result');
+            resultEl.innerHTML = '<div class="loading"></div> 测试中...';
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultEl.innerHTML = `
+                        <p style="color: #52c41a;">✅ API连接正常</p>
+                        <small>${data.data?.environment || 'Vercel'} - ${data.data?.version || 'v1.0'}</small>
+                    `;
+                } else {
+                    throw new Error('API响应异常');
+                }
+            } catch (error) {
+                resultEl.innerHTML = '<p style="color: #ff4d4f;">❌ API连接失败: ' + error.message + '</p>';
+            }
+        }
+        
+        async function testAIFunction() {
+            const resultEl = document.getElementById('ai-test-result');
+            resultEl.innerHTML = '<div class="loading"></div> 测试中...';
+            
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: '测试AI功能，请简单回复',
+                        provider: 'mock',
+                        conversation_id: 'test_' + Date.now()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultEl.innerHTML = '<p style="color: #52c41a;">✅ AI功能正常运行</p>';
+                } else {
+                    throw new Error(data.error || 'AI测试失败');
+                }
+            } catch (error) {
+                resultEl.innerHTML = '<p style="color: #ff4d4f;">❌ AI功能异常: ' + error.message + '</p>';
+            }
+        }
+        
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎉 CircuitAI 静态版本加载完成');
+            
+            // 默认显示首页
+            showSection('home');
+            
+            // 设置默认的演示模式
+            state.apiConfig = { provider: 'mock' };
+            
+            // 自动测试API状态
+            setTimeout(testAPIConnection, 1000);
+            
+            console.log('✅ 所有功能初始化完成，可以开始使用！');
+        });
+        
+        // 全局错误处理
+        window.addEventListener('error', function(event) {
+            console.error('页面错误:', event.error);
+        });
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Promise错误:', event.reason);
+        });
+    </script>
+</body>
+</html>

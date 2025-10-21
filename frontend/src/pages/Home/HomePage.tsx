@@ -2,8 +2,6 @@ import { Button, Card, Row, Col } from 'antd'
 import { RocketOutlined, BulbOutlined, ToolOutlined } from '@ant-design/icons'
 import { useI18n } from '../../i18n/I18nProvider'
 import { useNavigate } from 'react-router-dom'
-import AdSense from '../../components/common/AdSense'
-import { ADSENSE_CONFIG } from '../../config/adsense'
 
 const HomePage = () => {
   const navigate = useNavigate()
@@ -62,14 +60,7 @@ const HomePage = () => {
           ))}
         </Row>
 
-        {/* AdSense Banner */}
-        <div className="mb-16 text-center">
-          <AdSense 
-            slot={ADSENSE_CONFIG.SLOTS.HOME_BANNER}
-            format="horizontal"
-            style={{ display: 'block', textAlign: 'center' }}
-          />
-        </div>
+        {/* Banner区域已移除AdSense */}
 
         {/* CTA Section */}
         <div className="text-center bg-white rounded-lg shadow-lg p-8">

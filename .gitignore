@@ -74,3 +74,4 @@ uploads/
 
 # Cloudflare Wrangler 临时文件
 /workers/.wrangler/
+.vercel

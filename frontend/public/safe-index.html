@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI - AI电路设计平台</title>
+    <link rel="icon" type="image/svg+xml" href="/vite.svg">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f5f5f5;
+            overflow-x: hidden;
+        }
+        
+        /* 加载状态样式 */
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .loading-progress {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        
+        .fallback-btn {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 5px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .fallback-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+        }
+        
+        .error-info {
+            color: #ff9999;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px;
+            max-width: 500px;
+            text-align: center;
+            display: none;
+        }
+        
+        /* React 应用容器 */
+        #root {
+            display: none;
+        }
+        
+        #root.loaded {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- 智能加载界面 -->
+    <div id="loading-container" class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在启动 CircuitAI...</div>
+        <div class="loading-progress" id="loading-progress">初始化应用</div>
+        
+        <div class="error-info" id="error-info">
+            <!-- 错误信息将在这里显示 -->
+        </div>
+        
+        <div id="fallback-options" style="display: none;">
+            <a href="/migration-test.html" class="fallback-btn">🔧 功能测试页</a>
+            <a href="javascript:void(0)" class="fallback-btn" onclick="retryLoad()">🔄 重新尝试</a>
+            <a href="javascript:void(0)" class="fallback-btn" onclick="useSimpleMode()">🌟 简化模式</a>
+        </div>
+    </div>
+    
+    <!-- React 应用根容器 -->
+    <div id="root"></div>
+    
+    <script>
+        // 加载状态管理
+        class LoadingManager {
+            constructor() {
+                this.loadingContainer = document.getElementById('loading-container');
+                this.progressElement = document.getElementById('loading-progress');
+                this.errorElement = document.getElementById('error-info');
+                this.fallbackElement = document.getElementById('fallback-options');
+                this.rootElement = document.getElementById('root');
+                this.attempts = 0;
+                this.maxAttempts = 2;
+            }
+            
+            updateProgress(message) {
+                this.progressElement.textContent = message;
+                console.log('🔄 ' + message);
+            }
+            
+            showError(message) {
+                this.errorElement.innerHTML = `
+                    <strong>⚠️ 应用加载遇到问题</strong><br>
+                    ${message}<br><br>
+                    <small>您可以尝试以下选项：</small>
+                `;
+                this.errorElement.style.display = 'block';
+                this.fallbackElement.style.display = 'block';
+            }
+            
+            hideLoading() {
+                this.loadingContainer.style.display = 'none';
+                this.rootElement.classList.add('loaded');
+                this.rootElement.style.display = 'block';
+            }
+            
+            async tryLoadReactApp() {
+                try {
+                    this.attempts++;
+                    this.updateProgress(`尝试加载 React 应用 (${this.attempts}/${this.maxAttempts})`);
+                    
+                    // 检查必要的全局对象
+                    if (typeof window.React === 'undefined') {
+                        this.updateProgress('加载 React 库...');
+                        await this.loadScript('/assets/react-vendor-196c6b5f.js');
+                    }
+                    
+                    // 加载主应用
+                    this.updateProgress('加载主应用模块...');
+                    await this.loadScript('/assets/index-b01d9aee.js');
+                    
+                    // 等待 React 应用渲染
+                    this.updateProgress('等待应用启动...');
+                    await this.waitForReactApp();
+                    
+                    this.updateProgress('✅ 应用启动成功！');
+                    setTimeout(() => this.hideLoading(), 500);
+                    
+                } catch (error) {
+                    console.error('React应用加载失败:', error);
+                    
+                    if (this.attempts < this.maxAttempts) {
+                        this.updateProgress(`加载失败，${2000/1000}秒后重试...`);
+                        setTimeout(() => this.tryLoadReactApp(), 2000);
+                    } else {
+                        this.showError(`加载失败 ${this.attempts} 次: ${error.message}`);
+                    }
+                }
+            }
+            
+            loadScript(src) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.type = 'module';
+                    script.crossOrigin = 'anonymous';
+                    script.src = src;
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error(`无法加载脚本: ${src}`));
+                    document.head.appendChild(script);
+                });
+            }
+            
+            waitForReactApp() {
+                return new Promise((resolve, reject) => {
+                    let checks = 0;
+                    const maxChecks = 50; // 5秒超时
+                    
+                    const checkInterval = setInterval(() => {
+                        checks++;
+                        
+                        // 检查根元素是否有内容
+                        const hasContent = this.rootElement.children.length > 0;
+                        
+                        if (hasContent) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        } else if (checks >= maxChecks) {
+                            clearInterval(checkInterval);
+                            reject(new Error('React 应用启动超时'));
+                        }
+                    }, 100);
+                });
+            }
+        }
+        
+        // 全局函数
+        window.retryLoad = function() {
+            location.reload();
+        }
+        
+        window.useSimpleMode = function() {
+            location.href = '/migration-test.html';
+        }
+        
+        // 全局错误处理
+        window.addEventListener('error', (event) => {
+            console.error('全局错误:', event.error);
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('未处理的Promise拒绝:', event.reason);
+        });
+        
+        // 启动应用
+        document.addEventListener('DOMContentLoaded', function() {
+            const manager = new LoadingManager();
+            
+            // 立即开始尝试加载
+            manager.tryLoadReactApp();
+            
+            // 10秒终极超时保护
+            setTimeout(() => {
+                if (manager.loadingContainer.style.display !== 'none') {
+                    manager.showError('应用加载超时，请尝试刷新页面或使用简化模式');
+                }
+            }, 10000);
+        });
+    </script>
+</body>
+</html>

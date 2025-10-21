@@ -11,9 +11,8 @@ import {
 
 // 动态获取API基础URL
 const getApiBaseUrl = () => {
-  // 强制使用Workers API地址，无论什么环境
+  // 在Vercel环境中使用相对路径
   if (typeof window !== 'undefined') {
-    // 浏览器环境
     const hostname = window.location.hostname;
     
     // 本地开发环境
@@ -21,12 +20,12 @@ const getApiBaseUrl = () => {
       return 'http://localhost:3003/api';
     }
     
-    // 生产环境（包括Pages和其他域名）
-    return 'https://circuitai-api.peyoba660703.workers.dev/api';
+    // 生产环境 - 使用相对路径让Vercel处理
+    return '/api';
   }
   
-  // 服务端渲染环境，默认使用Workers地址
-  return 'https://circuitai-api.peyoba660703.workers.dev/api';
+  // 服务端渲染环境
+  return '/api';
 }
 
 // 创建axios实例

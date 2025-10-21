@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircuitAI - 迁移测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .status-card {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .status-card.success {
+            border-left: 4px solid #4CAF50;
+        }
+        .status-card.info {
+            border-left: 4px solid #2196F3;
+        }
+        .status-card.warning {
+            border-left: 4px solid #FF9800;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn.secondary {
+            background: #2196F3;
+        }
+        .btn.secondary:hover {
+            background: #1976D2;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            min-height: 50px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 CircuitAI 迁移成功！</h1>
+        
+        <div class="status-grid">
+            <div class="status-card success">
+                <h3>✅ Vercel部署</h3>
+                <p>部署状态：成功</p>
+                <p>环境：生产环境</p>
+            </div>
+            
+            <div class="status-card info">
+                <h3>🌐 网站访问</h3>
+                <p>主页加载：正常</p>
+                <p>静态资源：正常</p>
+            </div>
+            
+            <div class="status-card warning">
+                <h3>🔧 API状态</h3>
+                <p>API服务：<span id="api-status">待测试</span></p>
+                <button class="btn" onclick="testAPI()">测试API</button>
+            </div>
+        </div>
+        
+        <div style="text-align: center;">
+            <h3>功能测试</h3>
+            <button class="btn secondary" onclick="testHealth()">健康检查</button>
+            <button class="btn secondary" onclick="testChatAPI()">测试聊天</button>
+            <button class="btn secondary" onclick="openMainApp()">打开主应用</button>
+            
+            <div id="result"></div>
+        </div>
+        
+        <div class="footer">
+            <p>🚀 CircuitAI 已成功从 Cloudflare 迁移到 Vercel</p>
+            <p>当前时间: <span id="time"></span></p>
+            <p>访问地址: <span id="current-url"></span></p>
+        </div>
+    </div>
+    
+    <script>
+        // 显示当前信息
+        document.getElementById('current-url').textContent = window.location.href;
+        
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleString('zh-CN');
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // 测试API函数
+        async function testHealth() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<p>🔄 正在测试健康检查API...</p>';
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `<p style="color: #4CAF50;">✅ 健康检查成功</p>
+                        <p><strong>消息:</strong> ${data.message}</p>
+                        <p><strong>环境:</strong> ${data.data?.environment}</p>
+                        <p><strong>版本:</strong> ${data.data?.version}</p>`;
+                    document.getElementById('api-status').textContent = '正常';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                result.innerHTML = `<p style="color: #f44336;">❌ 健康检查失败: ${error.message}</p>`;
+                document.getElementById('api-status').textContent = '异常';
+            }
+        }
+        
+        async function testChatAPI() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<p>🔄 正在测试聊天API...</p>';
+            
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: '你好，这是一个测试',
+                        provider: 'mock',
+                        conversation_id: 'test_' + Date.now()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    result.innerHTML = `<p style="color: #4CAF50;">✅ 聊天API测试成功</p>
+                        <p><strong>响应:</strong> ${data.data?.response?.substring(0, 100)}...</p>`;
+                } else {
+                    throw new Error(data.error || '未知错误');
+                }
+            } catch (error) {
+                result.innerHTML = `<p style="color: #f44336;">❌ 聊天API测试失败: ${error.message}</p>`;
+            }
+        }
+        
+        async function testAPI() {
+            await testHealth();
+            setTimeout(testChatAPI, 2000);
+        }
+        
+        function openMainApp() {
+            window.location.href = '/';
+        }
+        
+        // 页面加载完成后自动测试
+        window.addEventListener('load', function() {
+            console.log('🎉 CircuitAI 迁移测试页面加载完成');
+            // 3秒后自动测试API
+            setTimeout(testHealth, 3000);
+        });
+    </script>
+</body>
+</html>

@@ -1,7 +1,148 @@
 # CircuitsAI - 智能电路设计平台开发指南
 
 ---
-## 📅 **最新工作记录 - 2025年9月6日**
+### Claude Code 八荣八耻
+
+- 以瞎猜接口为耻，以认真查询为荣。
+- 以模糊执行为耻，以寻求确认为荣。
+- 以臆想业务为耻，以复用现有为荣。
+- 以创造接口为耻，以主动测试为荣。
+- 以跳过验证为耻，以人类确认为荣。
+- 以破坏架构为耻，以遵循规范为荣。
+- 以假装理解为耻，以诚实无知为荣。
+- 以盲目修改为耻，以谨慎重构为荣。
+
+## 📅 **最新工作记录 - 2025年9月13日**
+
+### 🚨 紧急情况：Cloudflare域名封禁迁移方案
+
+#### 🎯 **背景情况**
+- ❗ **域名被封**：circuitai.top被Cloudflare封禁，网站无法访问
+- 🚨 **迫切需求**：需要立即迁移到其他托管平台
+- 📊 **当前架构**：前端(Cloudflare Pages) + 后端(Cloudflare Workers)
+
+#### 🏗️ **迁移方案评估**
+
+##### 1. **Vercel (强烈推荐)**
+**优势**：
+- 🆓 **免费额度充足**：100GB带宽/月，足够个人项目使用
+- ⚡ **性能优异**：全球CDN，边缘计算，访问速度快
+- 🔧 **部署简单**：Git推送即自动部署，支持预览环境
+- 🌐 **Serverless Functions**：可直接替代Cloudflare Workers
+- 🔒 **自动HTTPS**：SSL证书自动管理
+
+**成本**：
+- 免费版：100GB带宽/月
+- Pro版：$20/月，1TB带宽/月
+
+##### 2. **Netlify (备选方案)**
+**优势**：
+- 🆓 **免费额度**：100GB带宽/月
+- 🚀 **快速部署**：自动CI/CD集成
+- 📱 **表单处理**：内置表单和身份验证功能
+- 🔧 **Functions**：支持Netlify Functions
+
+##### 3. **阿里云/腾讯云 (国内备选)**
+**优势**：
+- 🇨🇳 **国内优化**：访问速度快，无GFW问题
+- 💰 **价格合理**：约¥50-100/月
+- 🛠️ **完整生态**：云服务器、CDN、域名一站式
+
+#### 📋 **详细迁移计划**
+
+##### 阶段1：环境准备 (15分钟)
+```bash
+# 安装Vercel CLI
+npm install -g vercel
+
+# 验证当前构建
+npm run build
+npm run test
+```
+
+##### 阶段2：Vercel配置 (30分钟)
+- 创建`vercel.json`配置文件 ✅
+- 配置构建设置和路由规则 ✅
+- 设置环境变量（API密钥等）
+
+##### 阶段3：API层迁移 (1小时)
+- 将Cloudflare Workers代码转换为Vercel Functions
+- 更新API端点配置
+- 测试API功能完整性
+
+##### 阶段4：部署上线 (30分钟)
+```bash
+# 一键部署
+./migrate.bat  # Windows
+# 或
+./migrate.sh   # Linux/Mac
+```
+
+##### 阶段5：域名配置 (1小时)
+- 在Vercel控制台添加自定义域名
+- 更新DNS记录指向Vercel
+- 等待SSL证书生成
+
+#### 🛠️ **技术实现细节**
+
+##### Workers to Vercel Functions转换
+```javascript
+// Cloudflare Workers (原)
+export default {
+  async fetch(request) {
+    return new Response('Hello')
+  }
+}
+
+// Vercel Functions (新)
+export default async function handler(req, res) {
+  res.status(200).json({ message: 'Hello' })
+}
+```
+
+##### API端点映射
+```
+原Cloudflare Workers:
+- https://circuitai-api.workers.dev/api/chat
+
+新Vercel Functions:
+- https://your-domain.vercel.app/api/chat
+```
+
+#### 📁 **迁移文件清单**
+- ✅ `migrate.bat` - Windows一键迁移脚本
+- ✅ `migrate.sh` - Linux/Mac迁移脚本  
+- ✅ `vercel.json` - Vercel部署配置
+
+#### ⚠️ **迁移注意事项**
+1. **数据备份**：确保代码已推送到Git仓库
+2. **API密钥**：需要在Vercel环境变量中重新配置
+3. **域名解析**：DNS切换会有传播延迟(最多48小时)
+4. **功能测试**：迁移后需要全面测试所有功能
+5. **监控告警**：配置新的错误监控和性能监控
+
+#### 💰 **成本对比分析**
+| 平台 | 免费额度 | 超出费用 | 特性 |
+|------|----------|----------|------|
+| Vercel | 100GB/月 | $20/100GB | 全球CDN、边缘计算 |
+| Netlify | 100GB/月 | $55/100GB | 表单处理、身份验证 |
+| 阿里云 | 无 | ¥50-100/月 | 国内访问优化 |
+| 腾讯云 | 无 | ¥60-120/月 | 完整云服务生态 |
+
+#### 🎯 **推荐决策**
+**首选**：Vercel（免费额度足够，部署简单，性能优异）
+**备选**：Netlify（功能相似，可作为备份）
+**国内**：阿里云（如需要国内访问优化）
+
+#### 📈 **后续优化建议**
+1. **多平台部署**：同时部署到Vercel和Netlify作为备份
+2. **CDN优化**：配置自定义CDN加速访问
+3. **监控完善**：添加性能监控和错误追踪
+4. **备用域名**：准备多个域名防止单点风险
+
+---
+
+## 📅 **历史工作记录 - 2025年9月6日**
 
 ### 🚨 紧急修复：项目结构重构与构建恢复
 
